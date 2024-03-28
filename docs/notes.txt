@@ -1,0 +1,36 @@
+Fazer vários packages?
+
+de acordo com a implementação do stor que tirei foto no quadro, o downloader está sempre a ir buscar dados à queue mesmo quando não tem lá nada, o que é desperdicio de recursos, pensaar sobre isso, fazer uma notify ou algo do género??????
+
+Considerar evitar visitar URLs que já tenham sido visitados
+Implementar deteção de ciclos nos urls?
+Implementar limite de profundidade
+
+usar bloom filter?
+ver rmi callbacks
+
+----
+
+Os resultados de uma pesquisa
+(funcionalidade anterior) devem ser apresentados por ordem de relevância.
+Para simplificar, considera-se que uma página é mais relevante se tiver mais ligações
+de outras páginas. Assim, o indexador automático deve manter, para cada
+URL, a lista de outros URLs que fazem ligação para ele.
+
+->> Talvez fazer como indica também no enunciado e fazer um id para cada url, ou seja fazer uma "tabela" que faça a correspondência id -> url e depois disso outra "tabela" ou estrutura que para cada url ou página indique o número e os links que a referenciam 
+
+--------------------------------
+
+A URL QUEUE deve ser um programa ou uma estrutura?
+
+Inicialmente estava a pensar em incluir a queue no Downloader.java visto que apenas este e a gateway o usam.
+Mas se estiver no Downloader.java como faço a ligação entre este e a Gateway, e vice-versa?
+
+-> Mas se fosse implementado no Downloader.java, visto que vão ser usados processos nos downloaders a QUEUE teria de ser usada em memória partilhada, talvez usar uma message queue iniciada no Gateway.java?
+	-> Usar uma LinkedBlockedQueue situada no RMIGateway.java que comunica com os downloaders através de RMI
+
+----------------------
+
+Criar o registry a partir da linha de comandos ou a partir do código Java?
+-> Fazer para já no código java porque parece ser mais simples, depois decidir mais tarde
+

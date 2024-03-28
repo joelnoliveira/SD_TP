@@ -1,32 +1,83 @@
 import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
-import org.jsoup.select.Elements;
+
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+
+import org.jsoup.nodes.Element;
+import org.jsoup.nodes.Document;
+import org.jsoup.select.Elements;
+
+import java.util.InputMismatchException;
+import java.util.Properties;
 import java.util.StringTokenizer;
+import java.rmi.registry.Registry;
+import java.rmi.registry.LocateRegistry;
+import rmi.RMIGatewayRemote;
 
 public class Downloader {
     public static void main(String args[]) {
-        // Todo: 1 fetch the url from url queue
 
-        // todo: 2 
+        int countTokens, linkSearchLimit;
 
-        // String url = args[0];
-        String url = "https://en.wikipedia.org/wiki/Main_Page";
+        String host, registryName;
+        
         try {
-            int countTokens = 0;
-            Document doc = Jsoup.connect(url).get();
-            StringTokenizer tokens = new StringTokenizer(doc.text());
 
-            while (tokens.hasMoreElements() && countTokens++ < 100){
+            Properties prop = new Properties();
+            InputStream input = new FileInputStream(args[0]);
+            prop.load(input);
 
-                System.out.println(tokens.nextToken().toLowerCase());
+            host = prop.getProperty("host");
+            registryName = prop.getProperty("registryName");
+            linkSearchLimit = Integer.parseInt(prop.getProperty("linkSearchLimit"));
+            
+        } catch (IOException e) {
+            e.printStackTrace();
+            return;
+        } catch (InputMismatchException e) {
+            e.printStackTrace();
+            return;
+        }
+
+        try {
+            // Create the registry
+            Registry registry = LocateRegistry.getRegistry(host);
+            RMIGatewayRemote gateway = (RMIGatewayRemote) registry.lookup(registryName);
+
+            try {
+                while (linkSearchLimit >= 0) {
+
+                    System.out.println("-------------------------");
+                    System.out.println("Remaining links until limit: " + linkSearchLimit);
+                    
+                    String url = gateway.getNextUrl();
+
+                    // Process the URL...
+                    countTokens = 0;
+                    Document doc = Jsoup.connect(url).get();
+                    StringTokenizer tokens = new StringTokenizer(doc.text());
+        
+                    while (tokens.hasMoreElements() && countTokens++ < 100){
+        
+                        System.out.println(tokens.nextToken().toLowerCase());
+                    }
+                    
+                    Elements links = doc.select("a[href]");
+
+                    for (Element link : links){
+
+                        gateway.addUrl(link.attr("abs:href"));
+                        System.out.println(link.text() + "\n" + link.attr("abs:href") + "\n");
+                    }
+
+                    linkSearchLimit--;
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
             }
             
-            Elements links = doc.select("a[href]");
-            for (Element link : links)
-                System.out.println(link.text() + "\n" + link.attr("abs:href") + "\n");
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
