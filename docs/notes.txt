@@ -64,3 +64,7 @@ Além disso poderá estar a atrasar outro barrel que não estava atrasado ao est
 Como seria feita a tal contagem das mensagens??
 -> As mensagens vindas dos downloaders, talvez fosse boa ideia quando o downloader está a inserir urls na URLQUEUE do RMIGateway, essa queue armazenar juntamente com cada url, um contador associado, permitindo assim quando um downloader fosse buscar um URL, estar sincronnizado com os outros downloaders quanto ao número da mensagem multicast que vai mandar aos barrels? (UNDICIDED)
 
+Talvez implementar threads nos downloaders para que a thread principal continue a tirar links da queue e a por, e vão sendo chamadas threads que ficam a tentar mandar as informações por multicast para os downloaders, os downloader que mandou as informações para os barrels depois fecharia a thread após ter recibo 2 ou mais acks com os números das mensagens. (UNDICIDED)
+
+---------
+Considerar ter diferentes portas nos downloaders relativamente aos barrels para evitar por exemplo que um downloader receba a sua própria mensagem

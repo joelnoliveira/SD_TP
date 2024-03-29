@@ -1,7 +1,7 @@
 #!/bin/sh
 
 input_path="config/downloaders.properties" # default input path relative to the root directory
-output_path="logs/downloaders_$(date +%Y%m%d%H%M%S%N).txt" # default output path relative to the root directory
+output_path="logs/downloader_$(date +%Y%m%d%H%M%S%N).txt" # default output path relative to the root directory
 
 # if the user provides an input path, use it
 if [ $# -gt 0 ]; then

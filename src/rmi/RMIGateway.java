@@ -14,6 +14,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 public class RMIGateway extends UnicastRemoteObject implements RMIGatewayRemote {
 
+    private int messageURLCounter = 0; // is incremented every time a URL is requested from the queue
     private LinkedBlockingQueue<String> urlQueue;
 
     public RMIGateway() throws RemoteException {
@@ -35,7 +36,7 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayRemote 
     }
 
     public String getNextUrl() throws InterruptedException {
-        return urlQueue.take();
+        return messageURLCounter++ + " " + urlQueue.take();
     }
 
     public static void main(String args[]) {

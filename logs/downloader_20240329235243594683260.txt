@@ -1,0 +1,3 @@
+2024-03-29T23:52:43.670348761 : Configurations sucessfully loaded!
+2024-03-29T23:52:43.687037862 : Multicast socket created!
+Received: Hello from Barrel from /172.19.212.58:4319

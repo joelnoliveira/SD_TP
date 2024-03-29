@@ -1,7 +1,20 @@
 #!/bin/sh
 
-# Compile the RMIGateway class
+# In case there is a flag -delete_bin_before_compile or -clean_all, delete everything in the bin folder
+if [ "$1" = "-delete_bin_before_compile" ] || [ "$1" = "-clean_all" ]; then
+    rm -rf bin/*
+fi
+# Compile the RMIGateway
 javac -d bin src/rmi/RMIGateway.java src/rmi/RMIGatewayRemote.java
 
-# Compile the Downloader class
+# Compile the Downloader
 javac -d bin -cp .:bin:lib/jars/jsoup-1.17.2.jar src/downloader/Downloader.java
+
+# Compile the IndexStorageBarrel
+javac -d bin src/barrels/IndexStorageBarrel.java
+
+# In case there is a flag -delete_logs or -clean_all, delete everything in the logs folder
+if [ "$1" = "-delete_logs" ] || [ "$1" = "-clean_all" ]; then
+    rm -rf logs/*
+fi
+
