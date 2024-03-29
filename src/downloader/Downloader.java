@@ -12,6 +12,7 @@ import java.util.InputMismatchException;
 import java.util.Properties;
 import java.util.StringTokenizer;
 import java.rmi.registry.Registry;
+import java.time.LocalDateTime;
 import java.rmi.registry.LocateRegistry;
 import rmi.RMIGatewayRemote;
 
@@ -28,9 +29,12 @@ public class Downloader {
             InputStream input = new FileInputStream(args[0]);
             prop.load(input);
 
+            
             host = prop.getProperty("host");
             registryName = prop.getProperty("registryName");
             linkSearchLimit = Integer.parseInt(prop.getProperty("linkSearchLimit"));
+
+            System.out.println(LocalDateTime.now() + " : Configurations sucessfully loaded!");
             
         } catch (IOException e) {
             e.printStackTrace();
@@ -43,7 +47,11 @@ public class Downloader {
         try {
             // Create the registry
             Registry registry = LocateRegistry.getRegistry(host);
+            System.out.println(LocalDateTime.now() + " : Registry found!");
+
+            // Look up the registry for the remote object
             RMIGatewayRemote gateway = (RMIGatewayRemote) registry.lookup(registryName);
+            System.out.println(LocalDateTime.now() + " : Gateway object retrieved!");
 
             try {
                 while (linkSearchLimit >= 0) {
@@ -70,6 +78,8 @@ public class Downloader {
                         gateway.addUrl(link.attr("abs:href"));
                         System.out.println(link.text() + "\n" + link.attr("abs:href") + "\n");
                     }
+
+                    // TODO send data by RELIABLE MULTICAST to the Index Storage Barrels
 
                     linkSearchLimit--;
                 }

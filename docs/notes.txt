@@ -2,11 +2,11 @@ Fazer vários packages?
 
 de acordo com a implementação do stor que tirei foto no quadro, o downloader está sempre a ir buscar dados à queue mesmo quando não tem lá nada, o que é desperdicio de recursos, pensaar sobre isso, fazer uma notify ou algo do género??????
 
-Considerar evitar visitar URLs que já tenham sido visitados
-Implementar deteção de ciclos nos urls?
+Considerar evitar visitar URLs que já tenham sido visitados (NOT IMPLEMENTED)
+Implementar deteção de ciclos nos urls? (NOT IMPLEMENTED)
 Implementar limite de profundidade
 
-usar bloom filter?
+usar bloom filter?(NOT IMPLEMENTED)
 ver rmi callbacks
 
 ----
@@ -32,5 +32,13 @@ Mas se estiver no Downloader.java como faço a ligação entre este e a Gateway,
 ----------------------
 
 Criar o registry a partir da linha de comandos ou a partir do código Java?
--> Fazer para já no código java porque parece ser mais simples, depois decidir mais tarde
+-> Fazer para já no código java porque parece ser mais simples, depois decidir mais tarde (UNDICIDED)
 
+----------
+
+Como evitar que links que já estejam ou já estiveram na urlqueue voltem novamente para lá (UNDICIDED)
+-> Talvez ir a um barrel verificar se está lá já guardado através de RMI??
+
+-----------------
+
+Ao mandar os dados dos downloaders por multicast para os Index Storage Barrels, considerar mandar um ACK dos barrels para o downloader para confirmar o envio? E se for feito isso como saber qual é o número correto de barrels ativos? (UNDICIDED)
