@@ -55,4 +55,12 @@ Talvez um novo barrel ou um barrel com pedidos perdidos faça um pedido por mult
 ->
 
 Além disso como seria o envio da informação em falta, seria por exemplo no caso de apenas em alguns pedidos em falta mandar apenas esses pedidos para depois os barrels "os compuatacionarem e armazenarem os dados" e no caso de um novo barrel apenas mandar já os dados já "computacionados", ou mandar em ambas as situações dados por computactionar ou em ambas situações dados já computacionados??? (UNDICIDED)
-->
+-> Mas depois os downloaders estiverem sempre a mandar informação para os barrels um barrel que esteja atrasado poderá ficar infinitamente atrasado. (UNDICIDED)
+
+
+Além disso poderá estar a atrasar outro barrel que não estava atrasado ao estar constantemente a pedir por pedidos perdidos, como resolver? (UNDICIDED)
+-> Talvez usar threads para cada processo barrel, em que o barrel iria receber pedidos novos vindos dos downloaders mas não os processava apenas os punha num array, depois quando esse array já não tivesse buracos, processava os pedidos.
+
+Como seria feita a tal contagem das mensagens??
+-> As mensagens vindas dos downloaders, talvez fosse boa ideia quando o downloader está a inserir urls na URLQUEUE do RMIGateway, essa queue armazenar juntamente com cada url, um contador associado, permitindo assim quando um downloader fosse buscar um URL, estar sincronnizado com os outros downloaders quanto ao número da mensagem multicast que vai mandar aos barrels? (UNDICIDED)
+
