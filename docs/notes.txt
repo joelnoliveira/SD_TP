@@ -7,7 +7,7 @@ Implementar deteção de ciclos nos urls? (NOT IMPLEMENTED)
 Implementar limite de profundidade
 
 usar bloom filter?(NOT IMPLEMENTED)
-ver rmi callbacks
+ver rmi callbacks (NOT IMPLEMENTED)
 
 ----
 
@@ -36,9 +36,23 @@ Criar o registry a partir da linha de comandos ou a partir do código Java?
 
 ----------
 
-Como evitar que links que já estejam ou já estiveram na urlqueue voltem novamente para lá (UNDICIDED)
+Como evitar que links que já estejam ou já estiveram na urlqueue voltem novamente para lá
 -> Talvez ir a um barrel verificar se está lá já guardado através de RMI??
+	-> Sim (NOT IMPLEMENTED)
 
 -----------------
 
 Ao mandar os dados dos downloaders por multicast para os Index Storage Barrels, considerar mandar um ACK dos barrels para o downloader para confirmar o envio? E se for feito isso como saber qual é o número correto de barrels ativos? (UNDICIDED)
+
+
+------------
+
+Quando um barrel novo é inserido, como é que ele pede os dados aos outros, será por MULTICAST? (UNDICIDED)
+-> Talvez numerar os pedidos que são feitos e assim quando um barrel receber um novo pedido e reparar que os anteriores foram ignorados, tenta repor os pedidos, pedindo a informação a outros barrels via multicast. Contudo isto não resolve caso nenhum barrel receba o pedido, como resolver?
+	-> Talvez o downloader que enviou o multicast aos barrels garantir que recebe pelo menos 2 ACKS, se não envia novamente o multicast, pois seriam necessario pelo menos dois acks, pois se fosse só um o barrel que o recebeu poderia morrer logo a seguir e a informação perder-se? (UNDICIDED)
+
+Talvez um novo barrel ou um barrel com pedidos perdidos faça um pedido por multicast para ver se alguém o pode ajudar, e depois de alguém lhe responde com sim, e com o seu nome (podia ser o timestamp em que o script foi corrido) e com a porta (maybe??) fazer uma conexação udp ou tcp? (UNDECIDED)
+->
+
+Além disso como seria o envio da informação em falta, seria por exemplo no caso de apenas em alguns pedidos em falta mandar apenas esses pedidos para depois os barrels "os compuatacionarem e armazenarem os dados" e no caso de um novo barrel apenas mandar já os dados já "computacionados", ou mandar em ambas as situações dados por computactionar ou em ambas situações dados já computacionados??? (UNDICIDED)
+->
