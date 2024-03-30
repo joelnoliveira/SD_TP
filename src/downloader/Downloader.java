@@ -1,3 +1,5 @@
+package downloader;
+
 import org.jsoup.Jsoup;
 
 import java.io.FileInputStream;
@@ -12,6 +14,7 @@ import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
 
 import java.util.InputMismatchException;
+import java.util.List;
 import java.util.Properties;
 import java.util.Scanner;
 import java.util.StringTokenizer;
@@ -24,6 +27,8 @@ import java.net.MulticastSocket;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+
+import downloader.URLData;
 
 public class Downloader {
     public static void main(String args[]) {
@@ -126,12 +131,16 @@ public class Downloader {
                                 }
                                 
                                 Elements links = doc.select("a[href]");
+
+                                
             
                                 for (Element link : links){
             
                                     gateway.addUrl(link.attr("abs:href"));
                                     System.out.println(link.text() + "\n" + link.attr("abs:href") + "\n");
                                 }
+
+                                URLData urlData = new URLData(messageNumber, url, title, textCitation, null, null);
             
                                 // TODO send data by RELIABLE MULTICAST to the Index Storage Barrels
         
