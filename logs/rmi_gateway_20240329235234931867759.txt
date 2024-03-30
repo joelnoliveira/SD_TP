@@ -1,4 +1,0 @@
-2024-03-29T23:52:35.012572461 : Configurations sucessfully loaded!
-2024-03-29T23:52:35.062497662 : RMIGateway instantiated.
-2024-03-29T23:52:35.064816762 : RMIGateway is ready.
-2024-03-29T23:52:35.065293362 : Default URL added to the queue.
