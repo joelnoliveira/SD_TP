@@ -10,4 +10,12 @@ public class URLData implements Serializable{
     public URLData() {
 
     }
+
+    @Override
+    public String toString() {
+        // return one each variable per line
+
+        return "type0\n" + messageId + "\n" +
+         pageURL + "\n" + title + "\n" + textCitation + "\n" + tokens + "\n" + links;
+    }
 }

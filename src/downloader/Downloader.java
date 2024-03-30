@@ -110,23 +110,7 @@ public class Downloader {
                                 // Process the URL...
                                 Document doc = Jsoup.connect(urlData.pageURL).get();
                                 
-                                // String token;
-                                // StringTokenizer tokens = new StringTokenizer(doc.title());
-                                // StringBuilder title = new StringBuilder();
-
-                                // currentBytesTitle = 0;
-                                // currentBytesCitation = 0;
-                                // currentBytesTokens = 0;
-
-                                // while (tokens.hasMoreElements()){
-
-                                //     token = tokens.nextToken().toLowerCase();
-                                //     if(token.getBytes().length + currentBytesTitle > maxBytesTitle)break;
-                                //     currentBytesTitle += token.getBytes().length;
-                                //     System.out.println(token);
-                                //     title.append(token + " ");
-                                // }
-
+                                // ------------------------- Title -------------------------
                                 String string = doc.title();
                                 byte[] bytes = string.getBytes();
                                 int limit = Math.min(maxBytesTitle, bytes.length);
@@ -135,47 +119,29 @@ public class Downloader {
                                 urlData.title = string;
                                 System.out.println("Title: " + urlData.title);
 
+                                // ------------------------- Text Citation -------------------------
+
                                 Elements paragraphs = doc.select("p");
                                 bytes = paragraphs.text().getBytes();
                                 limit = Math.min(maxBytesCitation, bytes.length);
                                 string = new String(bytes, 0, limit);
-                                
-                                // String parararar = paragraphs.text();
-                                // StringBuilder coupleParagraphs = new StringBuilder();
 
-                                // for (Element paragraph : paragraphs) {
-
-                                //     coupleParagraphs.append(paragraph.text());
-                                //     coupleParagraphs.append(" ");
-
-                                //     // If the limit of paragraphs for citation is reached, break the loop
-                                //     if(!(counter++ < paragraphsNumberForCitation))break;
-                                // }
-
-                                urlData.textCitation = string;
+                                urlData.textCitation = string.toLowerCase().replace("\n", " ");
 
                                 System.out.println("Text Citation: " + urlData.textCitation);
 
-
-
-                                // StringTokenizer tokens = new StringTokenizer(doc.text());
-                                // String token;
+                                // ------------------------- Tokens -------------------------
                                 
                                 doc.select("button, .slide").remove(); // remove text from buttons and slides
                                 string = doc.text();
                                 bytes = string.getBytes();
                                 limit = Math.min(maxBytesTokens, bytes.length);
                                 urlData.tokens = new String(bytes, 0, limit);
+                                urlData.tokens = urlData.tokens.toLowerCase().replace("\n", " ");
                                 System.out.println("Tokens: " + urlData.tokens);
 
                     
-                                // while (tokens.hasMoreElements() && countTokens++ < tokenLimit){
-                                //     token = tokens.nextToken().toLowerCase();
-                                    
-                                //     System.out.println(token);
-                                //     urlData.addWord(token);
-                    
-                                // }
+                                // ------------------------- Links -------------------------
                                 
                                 Elements links = doc.select("a[href]");
                                 StringBuilder coupleLinks = new StringBuilder();
@@ -196,17 +162,16 @@ public class Downloader {
                                     System.out.println(link.text() + "\n" + link.attr("abs:href") + "\n");
                                 }
 
-                                urlData.links = coupleLinks.toString();
+                                urlData.links = coupleLinks.toString().toLowerCase().replace("\n", " ");
             
                                 // TODO send data by RELIABLE MULTICAST to the Index Storage Barrels
                                 
-                                ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
-                                ObjectOutputStream objectStream = new ObjectOutputStream(byteStream);
-                                objectStream.writeObject(urlData);
-                                byte[] buffer = byteStream.toByteArray();
+                                // ------------------------- Multicast -------------------------
 
+                                bytes = urlData.toString().getBytes(); // Convert the object to string and then to bytes and put it in the buffer
+                                System.out.println("Sending: " + urlData.toString());
                                 // Send a message
-                                DatagramPacket packet = new DatagramPacket(buffer, buffer.length, group, multicastBarrelsPort);
+                                DatagramPacket packet = new DatagramPacket(bytes, bytes.length, group, multicastBarrelsPort);
                                 socket.send(packet);
         
                                 // TODO maybe implement threds

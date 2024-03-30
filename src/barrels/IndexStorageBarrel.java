@@ -12,6 +12,7 @@ import java.net.SocketAddress;
 import java.time.LocalDateTime;
 import java.util.InputMismatchException;
 import java.util.Properties;
+import java.util.Scanner;
 
 import downloader.URLData;
 
@@ -19,6 +20,17 @@ public class IndexStorageBarrel{
     
     public void run() {
         System.out.println("IndexStorageBarrel is running");
+    }
+
+    public void saveData(String data){
+
+        // Deserialize the data
+        try (Scanner scanner = new Scanner(data)) {
+            scanner.nextLine(); // Skip the first line
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
     }
 
     public static void main(String[] args) {
@@ -33,7 +45,7 @@ public class IndexStorageBarrel{
         NetworkInterface networkInterface = null;
 
         try {
-
+            // Load configurations
             Properties prop = new Properties();
             InputStream input = new FileInputStream(args[0]);
             prop.load(input);
@@ -55,13 +67,13 @@ public class IndexStorageBarrel{
             System.out.println(LocalDateTime.now() + " : Configurations sucessfully loaded!");
 
             MulticastSocket socket = null;
-            try {
+            try { // Create a multicast socket
                 socket = new MulticastSocket(multicastBarrelsPort);
                 System.out.println(LocalDateTime.now() + " : Multicast socket created!");
 
                 group = InetAddress.getByName(multicastAddress);
                 socketAddress0 = new InetSocketAddress(group, multicastDownloadersPort);
-                // socketAddress1 = new InetSocketAddress(group, multicastBarrelsPort); // TODO later
+                // socketAddress1 = new InetSocketAddress(group, multicastBarrelsPort); // TODO later so it can communicate with other barrels
                 networkInterface = NetworkInterface.getByName(multicastInterface);
                 socket.joinGroup(socketAddress0, networkInterface);
                 // socket.joinGroup(socketAddress1, networkInterface);
@@ -70,19 +82,14 @@ public class IndexStorageBarrel{
                 // Receive a message from the downloaders
                 while (true) {
                     
-                    byte[] buffer =  new byte[maxMulticastBytes+1000];
+                    byte[] buffer =  new byte[maxMulticastBytes+1000]; // 1000 just to be sure
                     DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
                     socket.receive(packet);
-                    ByteArrayInputStream byteStream = new ByteArrayInputStream(buffer);
-                    ObjectInputStream objectStream = new ObjectInputStream(byteStream);
-                    URLData urlData = (URLData) objectStream.readObject();
                     
-                    System.out.println("Message number: " + urlData.messageId);
-                    System.out.println("URL: " + urlData.pageURL);
-                    System.out.println("Title: " + urlData.title);
-                    System.out.println("Text Citation: " + urlData.textCitation);
-                    System.out.println("Tokens: " + urlData.tokens);
-                    System.out.println("Links: " + urlData.links);
+                    String received = new String(packet.getData(), 0, packet.getLength());
+                    System.out.println("Received: " + received);
+
+                    
                 }
                 // // Receive a message
                 // byte[]buffer = new byte[1000];
