@@ -2,19 +2,21 @@ package downloader;
 
 import org.jsoup.Jsoup;
 
+import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.ObjectOutputStream;
 import java.net.MulticastSocket;
 import java.net.NetworkInterface;
 import java.net.SocketAddress;
+import java.nio.charset.StandardCharsets;
 
 import org.jsoup.nodes.Element;
 import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
 
 import java.util.InputMismatchException;
-import java.util.List;
 import java.util.Properties;
 import java.util.Scanner;
 import java.util.StringTokenizer;
@@ -28,12 +30,11 @@ import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 
-import downloader.URLData;
-
 public class Downloader {
     public static void main(String args[]) {
 
-        int countTokens, linkSearchLimit, tokenLimit, multicastDownloadersPort, multicastBarrelsPort, multticastTTL, paragraphsNumberForCitation;
+        int linkSearchLimit, maxBytesTitle, maxBytesCitation, maxBytesTokens, maxBytesLinks, currentBytesLinks;
+        int multicastDownloadersPort, multicastBarrelsPort, multticastTTL;
         String host, registryName, multicastAddress, multicastInterface;
         InetAddress group = null;
         SocketAddress socketAddress = null;
@@ -48,9 +49,13 @@ public class Downloader {
             
             host = prop.getProperty("host");
             registryName = prop.getProperty("registryName");
+
             linkSearchLimit = Integer.parseInt(prop.getProperty("linkSearchLimit"));
-            tokenLimit = Integer.parseInt(prop.getProperty("tokenLimit"));
-            paragraphsNumberForCitation = Integer.parseInt(prop.getProperty("paragraphsNumberForCitation"));
+            maxBytesTitle = Integer.parseInt(prop.getProperty("maxBytesTitle"));
+            maxBytesCitation = Integer.parseInt(prop.getProperty("maxBytesCitation"));
+            maxBytesTokens = Integer.parseInt(prop.getProperty("maxBytesTokens"));
+            maxBytesLinks = Integer.parseInt(prop.getProperty("maxBytesLinks"));
+
             multicastDownloadersPort = Integer.parseInt(prop.getProperty("multicastDownloadersPort"));
             multicastBarrelsPort = Integer.parseInt(prop.getProperty("multicastBarrelsPort"));
             multicastAddress = prop.getProperty("multicastAddress");
@@ -93,56 +98,116 @@ public class Downloader {
         
                             try (Scanner scanner = new Scanner(urlWithCounter)){ //Process the URL
         
-                                int messageNumber = scanner.nextInt(); // going to usefull in multicast for ordering
-                                String url = scanner.next();
+                                URLData urlData = new URLData();
+                                urlData.messageId = scanner.nextInt(); // going to usefull in multicast for ordering
+
+                                urlData.pageURL = scanner.next();
             
-                                System.out.println("Message number: " + messageNumber);
+                                System.out.println("Message number: " + urlData.messageId);
             
-                                System.out.println("URL: " + url);
+                                System.out.println("URL: " + urlData.pageURL);
             
                                 // Process the URL...
-                                countTokens = 0;
-                                Document doc = Jsoup.connect(url).get();
-                                String title = doc.title();
+                                Document doc = Jsoup.connect(urlData.pageURL).get();
                                 
-                                int counter = 0;
+                                // String token;
+                                // StringTokenizer tokens = new StringTokenizer(doc.title());
+                                // StringBuilder title = new StringBuilder();
+
+                                // currentBytesTitle = 0;
+                                // currentBytesCitation = 0;
+                                // currentBytesTokens = 0;
+
+                                // while (tokens.hasMoreElements()){
+
+                                //     token = tokens.nextToken().toLowerCase();
+                                //     if(token.getBytes().length + currentBytesTitle > maxBytesTitle)break;
+                                //     currentBytesTitle += token.getBytes().length;
+                                //     System.out.println(token);
+                                //     title.append(token + " ");
+                                // }
+
+                                String string = doc.title();
+                                byte[] bytes = string.getBytes();
+                                int limit = Math.min(maxBytesTitle, bytes.length);
+                                string = new String(bytes, 0, limit);
+
+                                urlData.title = string;
+                                System.out.println("Title: " + urlData.title);
 
                                 Elements paragraphs = doc.select("p");
-                                StringBuilder coupleParagraphs = new StringBuilder();
+                                bytes = paragraphs.text().getBytes();
+                                limit = Math.min(maxBytesCitation, bytes.length);
+                                string = new String(bytes, 0, limit);
+                                
+                                // String parararar = paragraphs.text();
+                                // StringBuilder coupleParagraphs = new StringBuilder();
 
-                                for (Element paragraph : paragraphs) {
+                                // for (Element paragraph : paragraphs) {
 
-                                    coupleParagraphs.append(paragraph.text());
-                                    coupleParagraphs.append(" ");
+                                //     coupleParagraphs.append(paragraph.text());
+                                //     coupleParagraphs.append(" ");
 
-                                    // If the limit of paragraphs for citation is reached, break the loop
-                                    if(!(counter++ < paragraphsNumberForCitation))break;
-                                }
-                                String textCitation = coupleParagraphs.toString();
+                                //     // If the limit of paragraphs for citation is reached, break the loop
+                                //     if(!(counter++ < paragraphsNumberForCitation))break;
+                                // }
 
-                                System.out.println("Title: " + title);
-                                System.out.println("Text Citation: " + textCitation);
-                                StringTokenizer tokens = new StringTokenizer(doc.text());
+                                urlData.textCitation = string;
+
+                                System.out.println("Text Citation: " + urlData.textCitation);
+
+
+
+                                // StringTokenizer tokens = new StringTokenizer(doc.text());
+                                // String token;
+                                
+                                doc.select("button, .slide").remove(); // remove text from buttons and slides
+                                string = doc.text();
+                                bytes = string.getBytes();
+                                limit = Math.min(maxBytesTokens, bytes.length);
+                                urlData.tokens = new String(bytes, 0, limit);
+                                System.out.println("Tokens: " + urlData.tokens);
 
                     
-                                while (tokens.hasMoreElements() && countTokens++ < tokenLimit){
+                                // while (tokens.hasMoreElements() && countTokens++ < tokenLimit){
+                                //     token = tokens.nextToken().toLowerCase();
+                                    
+                                //     System.out.println(token);
+                                //     urlData.addWord(token);
                     
-                                    System.out.println(tokens.nextToken().toLowerCase());
-                                }
+                                // }
                                 
                                 Elements links = doc.select("a[href]");
+                                StringBuilder coupleLinks = new StringBuilder();
+                                currentBytesLinks = 0;
 
-                                
-            
+
+
                                 for (Element link : links){
-            
+                                    
+                                    // Check if the sum of the bytes of the links is greater than the limit
+                                    if(link.attr("abs:href").getBytes().length + currentBytesLinks > maxBytesLinks)break;
+                                    else if(currentBytesLinks > 0)coupleLinks.append(" ");
+
+                                    currentBytesLinks += link.attr("abs:href").getBytes().length;
+                                    coupleLinks.append(link.attr("abs:href"));
+
                                     gateway.addUrl(link.attr("abs:href"));
                                     System.out.println(link.text() + "\n" + link.attr("abs:href") + "\n");
                                 }
 
-                                URLData urlData = new URLData(messageNumber, url, title, textCitation, null, null);
+                                urlData.links = coupleLinks.toString();
             
                                 // TODO send data by RELIABLE MULTICAST to the Index Storage Barrels
+                                
+                                ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
+                                ObjectOutputStream objectStream = new ObjectOutputStream(byteStream);
+                                objectStream.writeObject(urlData);
+                                byte[] buffer = byteStream.toByteArray();
+
+                                // Send a message
+                                DatagramPacket packet = new DatagramPacket(buffer, buffer.length, group, multicastBarrelsPort);
+                                socket.send(packet);
         
                                 // TODO maybe implement threds
         

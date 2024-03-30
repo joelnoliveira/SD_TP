@@ -27,6 +27,6 @@ fi
 
 cd bin
 
-java -cp .:../lib/jars/jsoup-1.17.2.jar Downloader ../$input_path > ../$output_path
+java -cp .:../lib/jars/jsoup-1.17.2.jar downloader.Downloader ../$input_path > ../$output_path
 
 cd ..

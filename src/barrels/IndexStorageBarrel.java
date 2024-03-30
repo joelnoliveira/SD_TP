@@ -1,6 +1,8 @@
+import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.ObjectInputStream;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -11,6 +13,8 @@ import java.time.LocalDateTime;
 import java.util.InputMismatchException;
 import java.util.Properties;
 
+import downloader.URLData;
+
 public class IndexStorageBarrel{
     
     public void run() {
@@ -19,8 +23,10 @@ public class IndexStorageBarrel{
 
     public static void main(String[] args) {
 
-        int multicastDownloadersPort, multicastBarrelsPort, multticastTTL;
+        int multicastDownloadersPort, multicastBarrelsPort, multticastTTL, maxMulticastBytes;
         String host, registryName, multicastAddress, multicastInterface;
+
+        maxMulticastBytes = 0;
         InetAddress group = null;
         SocketAddress socketAddress0 = null; // Downloaders
         // SocketAddress socketAddress1 = null; // So barrels can communicate with each other
@@ -35,11 +41,16 @@ public class IndexStorageBarrel{
             
             host = prop.getProperty("host");
             registryName = prop.getProperty("registryName");
+
             multicastDownloadersPort = Integer.parseInt(prop.getProperty("multicastDownloadersPort"));
             multicastBarrelsPort = Integer.parseInt(prop.getProperty("multicastBarrelsPort"));
             multicastAddress = prop.getProperty("multicastAddress");
             multicastInterface = prop.getProperty("multicastInterface");
             multticastTTL = Integer.parseInt(prop.getProperty("multicastTTL"));
+            maxMulticastBytes+= Integer.parseInt(prop.getProperty("maxBytesTitle"));
+            maxMulticastBytes+= Integer.parseInt(prop.getProperty("maxBytesCitation"));
+            maxMulticastBytes+= Integer.parseInt(prop.getProperty("maxBytesTokens"));
+            maxMulticastBytes+= Integer.parseInt(prop.getProperty("maxBytesLinks"));
 
             System.out.println(LocalDateTime.now() + " : Configurations sucessfully loaded!");
 
@@ -55,22 +66,39 @@ public class IndexStorageBarrel{
                 socket.joinGroup(socketAddress0, networkInterface);
                 // socket.joinGroup(socketAddress1, networkInterface);
                 socket.setTimeToLive(multticastTTL);
+
+                // Receive a message from the downloaders
+                while (true) {
+                    
+                    byte[] buffer =  new byte[maxMulticastBytes+1000];
+                    DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
+                    socket.receive(packet);
+                    ByteArrayInputStream byteStream = new ByteArrayInputStream(buffer);
+                    ObjectInputStream objectStream = new ObjectInputStream(byteStream);
+                    URLData urlData = (URLData) objectStream.readObject();
+                    
+                    System.out.println("Message number: " + urlData.messageId);
+                    System.out.println("URL: " + urlData.pageURL);
+                    System.out.println("Title: " + urlData.title);
+                    System.out.println("Text Citation: " + urlData.textCitation);
+                    System.out.println("Tokens: " + urlData.tokens);
+                    System.out.println("Links: " + urlData.links);
+                }
+                // // Receive a message
+                // byte[]buffer = new byte[1000];
+                // String received = new String(packet.getData(), 0, packet.getLength());
+                // System.out.println("Received: " + received + " from " + packet.getAddress() + ":" + packet.getPort());
                 
-                // Receive a message
-                byte[]buffer = new byte[1000];
-                DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
-                socket.receive(packet);
-                String received = new String(packet.getData(), 0, packet.getLength());
-                System.out.println("Received: " + received + " from " + packet.getAddress() + ":" + packet.getPort());
-                
-                // Send a message
-                String message = "Hello from Barrel";
-                buffer = message.getBytes();
-                packet = new DatagramPacket(buffer, buffer.length, group, multicastDownloadersPort);
-                socket.send(packet);
+                // // Send a message
+                // String message = "Hello from Barrel";
+                // buffer = message.getBytes();
+                // packet = new DatagramPacket(buffer, buffer.length, group, multicastDownloadersPort);
+                // socket.send(packet);
 
             } catch (IOException e) {
                 System.out.println("Error creating multicast socket: " + e.getMessage());
+            } catch (Exception e) {
+                e.printStackTrace();
             } finally {
                 if (socket != null) {
                     try {

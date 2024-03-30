@@ -54,6 +54,9 @@ Quando um barrel novo é inserido, como é que ele pede os dados aos outros, ser
 Talvez um novo barrel ou um barrel com pedidos perdidos faça um pedido por multicast para ver se alguém o pode ajudar, e depois de alguém lhe responde com sim, e com o seu nome (podia ser o timestamp em que o script foi corrido) e com a porta (maybe??) fazer uma conexação udp ou tcp? (UNDECIDED)
 ->
 
+Um problema aqui também seria que desta maneira um barrel só deteta que perdeu mensagens se receber mensagens a seguir às que estão em falta, se não nunca as deteta? (UNDICIDED)
+-> Talvez fazer uma pedido periódico de verificação aos outros barrels, e os outros barrels enviarem a sua contagem de mensagens atual, para o barrel mais atrasado pedir informação ao barrel menos atrasado, caso contrário os atrasos iriam persistir.
+
 Além disso como seria o envio da informação em falta, seria por exemplo no caso de apenas em alguns pedidos em falta mandar apenas esses pedidos para depois os barrels "os compuatacionarem e armazenarem os dados" e no caso de um novo barrel apenas mandar já os dados já "computacionados", ou mandar em ambas as situações dados por computactionar ou em ambas situações dados já computacionados??? (UNDICIDED)
 -> Mas depois os downloaders estiverem sempre a mandar informação para os barrels um barrel que esteja atrasado poderá ficar infinitamente atrasado. (UNDICIDED)
 
@@ -67,4 +70,22 @@ Como seria feita a tal contagem das mensagens??
 Talvez implementar threads nos downloaders para que a thread principal continue a tirar links da queue e a por, e vão sendo chamadas threads que ficam a tentar mandar as informações por multicast para os downloaders, os downloader que mandou as informações para os barrels depois fecharia a thread após ter recibo 2 ou mais acks com os números das mensagens. (UNDICIDED)
 
 ---------
-Considerar ter diferentes portas nos downloaders relativamente aos barrels para evitar por exemplo que um downloader receba a sua própria mensagem
+Considerar ter diferentes portas nos downloaders relativamente aos barrels para evitar por exemplo que um downloader receba a sua própria mensagem(UNDICIDED)
+
+
+-------------
+
+Relembrar que quandoo crawler pesquisa tokens na página eles são sempre convertidos para minúsculas, por isso lembrar de fazer a conversão para minúsculas também do input do utilizador.
+
+----
+Como saber na hora de receber nos barrels o packet vindo do multicast dos downloaders quanto espaço é que ocupa? (UNDICIDED)
+-> Talvez limitar por bytes o número de tokens (soma de bytes), ir adicionando parágrafos para a text citation, desde que não exceda o limite de bytes, e ir adicionando tokens, palavras 
+
+-------
+
+Estava a pensar também em ter words(tokens) desde o ínicio da página e outras words(tokens) de parágrafos visto que as primeriras pode apanhar secções e subsecções das páginas e as segundas podem apanhar informação mais relevante nas páginas? (UNDICIDED)
+
+
+---
+
+Talvez em vez de ter um array com words, 
