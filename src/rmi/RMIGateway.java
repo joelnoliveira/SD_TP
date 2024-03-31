@@ -8,17 +8,24 @@ import java.rmi.registry.Registry;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.server.UnicastRemoteObject;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.InputMismatchException;
+import java.util.List;
 import java.util.Properties;
+import java.util.Scanner;
 import java.util.concurrent.LinkedBlockingQueue;
+import barrels.IndexStorageBarrel;
 
-public class RMIGateway extends UnicastRemoteObject implements RMIGatewayRemote {
+public class RMIGateway extends UnicastRemoteObject implements InterfaceGateway {
 
     private int messageURLCounter = 0; // is incremented every time a URL is requested from the queue
     private LinkedBlockingQueue<String> urlQueue;
+    private IndexStorageBarrel barrel;
 
     public RMIGateway() throws RemoteException {
         urlQueue = new LinkedBlockingQueue<>();
+        barrel = new IndexStorageBarrel();
     }
 
     // private boolean wasUrlQueued(String url) {
@@ -34,9 +41,60 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayRemote 
             // urlQueue.add(url);
         urlQueue.add(url);
     }
-
     public String getNextUrl() throws InterruptedException {
         return messageURLCounter++ + " " + urlQueue.take();
+    }
+
+    // Vou colocar só as funções que tenho
+    //
+        public synchronized void indexURL(String url) throws RemoteException {
+        //System.out.println("Indexing URL: " + url);
+        if (this.urlQueue != null && !this.urlQueue.contains(url)) {
+            this.urlQueue.add(url);
+        }
+    }
+    public List<String> searchByTerms(String keywords) throws RemoteException {
+        //System.out.println("Consulting keywords: " + keywords);
+        HashSet<String> urls = barrel.getURLsByTerms(keywords);
+        List<String> results = new ArrayList<String>();
+
+        if (urls == null) {
+            results.add("No results found");
+        } else {
+            int i = 0;
+            for (String url : urls) {
+                if (i % 10 == 0) {
+                    int pagina = i / 10 + 1;
+                    results.add("\n-------- Página " + pagina + " --------\n");
+                }
+                results.add(barrel.getPageTitle(url));
+                results.add(url);
+                results.add(barrel.getShortQuote(url));
+                if (i % 10 == 0) {
+                    System.out.println("Para passar à próxima página, pressione ENTER");
+                    Scanner scanner = new Scanner(System.in);
+                    scanner.nextLine();
+                    scanner.close();
+                }
+                i++;
+            }
+        }
+        return results;
+    }
+    public void consult(String url_consulta) {
+        System.out.println("Consulting URL: " + url_consulta);
+        List<String> urls_results = barrel.getURLsByLink(url_consulta);
+        if (urls_results == null) {
+            System.out.println("No results found");
+        } else {
+            for (String url : urls_results) {
+                System.out.println(url);
+            }
+        }
+    }
+    public void admin() {
+        //TODO: Admin page
+        System.out.println("Admin page");
     }
 
     public static void main(String args[]) {

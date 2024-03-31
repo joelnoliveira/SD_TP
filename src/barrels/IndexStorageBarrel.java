@@ -1,3 +1,5 @@
+package barrels;
+
 import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -9,15 +11,44 @@ import java.net.InetSocketAddress;
 import java.net.MulticastSocket;
 import java.net.NetworkInterface;
 import java.net.SocketAddress;
+import java.rmi.RemoteException;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.InputMismatchException;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Scanner;
 
 import downloader.URLData;
 
 public class IndexStorageBarrel{
+
+    //Vê se concorda com a estrutura
+    private HashMap<String, HashSet<String>> invertedIndex = new HashMap<String, HashSet<String>>();
+    private HashMap<String, String> pageTitles = new HashMap<String, String>();
+    private HashMap<String, String> pageContents = new HashMap<String, String>();
+    private HashMap<String, List<String>>pageLinks = new HashMap<String, List<String>>();
+    private HashMap<String, Integer> pageLinksCount = new HashMap<String, Integer>();
+    private HashSet<String> indexedUrls = new HashSet<String>();
+    private ArrayList<String> urlsQueue = new ArrayList<String>();
+    private HashMap<String, Integer> termCounts = new HashMap<String, Integer>();
     
+    //Construtor
+    public IndexStorageBarrel() throws RemoteException {
+        this.invertedIndex = new HashMap<>();
+        this.pageTitles = new HashMap<>();
+        this.pageContents = new HashMap<>();
+        this.pageLinks = new HashMap<>();
+        this.pageLinksCount = new HashMap<>();
+        this.indexedUrls = new HashSet<>();
+    }
+
     public void run() {
         System.out.println("IndexStorageBarrel is running");
     }
@@ -31,6 +62,142 @@ public class IndexStorageBarrel{
             e.printStackTrace();
         }
 
+    }
+
+    //Vou colocar só as funções que tenho
+    //Vamos ter que altera-las para que elas possam ser usadas aqui
+
+    public synchronized void add2Queue(String url) throws RemoteException {
+        if (!indexedUrls.contains(url) && !urlsQueue.contains(url)) {
+            this.urlsQueue.add(url);   
+        }
+    }
+    public ArrayList<String> getQueue(){
+        return this.urlsQueue;
+    }
+
+    public void add2Index(String term, String url) throws RemoteException {
+        HashSet<String> urls = invertedIndex.get(term);
+        if (urls == null) {
+            urls = new HashSet<String>();
+            invertedIndex.put(term, urls);
+            //System.out.println("Term: " + term + " added to inverted index");
+        }
+        urls.add(url);
+        //System.out.println("URL: " + url + " added to term: " + term);
+        termCounts.merge(term, 1, Integer::sum);
+    }
+    public void getInvertedIndex(){
+        //System.out.println("Inverted Index: ");
+        for (Map.Entry<String, HashSet<String>> entry : invertedIndex.entrySet()) {
+            //System.out.println("Term: " + entry.getKey() + " URLs: " + entry.getValue());
+        }
+    }
+
+    public void add2IndexedUrls(String term,String url) throws RemoteException {
+        indexedUrls.add(url);
+    }
+
+    public void addPageTitle(String url, String title) throws RemoteException {
+        pageTitles.put(url, title);
+    }
+
+    public String getPageTitle(String url) throws RemoteException {
+        return pageTitles.get(url);
+    }
+
+    public void addPageContents(String url, String text) throws RemoteException {
+        pageContents.put(url, text);
+    }
+
+    public String getPageContents(String url) throws RemoteException {
+        return pageContents.get(url);
+    }
+
+    public void addPageLinks(String url, List<String> links) throws RemoteException {
+        pageLinks.put(url, links);
+    }
+
+    public List<String> getPageLinks(String url) throws RemoteException {
+        return pageLinks.get(url);
+    }
+
+    public void addPageLinksCount(String url, int count) throws RemoteException {
+        pageLinksCount.put(url, count);
+    }
+
+    public int getPageLinksCount(String url) throws RemoteException {
+        return pageLinksCount.get(url);
+    }
+
+    public String getShortQuote(String url) throws RemoteException {
+        String text = pageContents.get(url);
+        if (text == null) {
+            return "";
+        }
+        String quote = text.substring(0, Math.min(40, text.length()))+"...";
+        return quote;
+    }
+
+    public LinkedHashSet<String> getURLsByTerms(String terms) throws RemoteException {
+        List<String> termsList = new ArrayList<String>();
+        for (String term : terms.split(" ")) {
+            termsList.add(term);
+        }
+        HashSet<String> urls = new HashSet<String>();
+        for (String term : termsList) {
+            HashSet<String> termURLs = invertedIndex.get(term);
+            if (termURLs == null) {
+                return null;
+            }
+            if (urls.isEmpty()) {
+                urls.addAll(termURLs);
+            } else {
+                urls.retainAll(termURLs);
+            }
+        }
+        return getSortedByPageLinks(urls);
+    }
+
+    public LinkedHashSet<String> getSortedByPageLinks(HashSet<String> termURLs) throws RemoteException {
+        HashMap <Integer,String> notSortedURLs = new HashMap<Integer,String>();
+
+        for(String url: termURLs){
+            notSortedURLs.put(pageLinksCount.get(url), url);
+            //System.out.println("URL: " + url + " Links: " + getPageLinksCount(url));
+        }
+
+        Map<Integer,String> sortedURLs = sortByKeys(notSortedURLs);
+
+        //System.out.println("Sorted URLs: " + sortedURLs);
+
+        LinkedHashSet<String> sortedURLsSet = new LinkedHashSet<String>();
+        List<Integer> keys = new ArrayList<>(sortedURLs.keySet());
+        Collections.reverse(keys);
+
+        for (Integer key : keys) {
+            sortedURLsSet.add(sortedURLs.get(key));
+        }
+
+        return sortedURLsSet;
+    }
+
+    public static HashMap<Integer,String> sortByKeys(HashMap<Integer,String> map){
+        ArrayList<Integer> keys = new ArrayList<Integer>(map.keySet());
+        Collections.sort(keys);
+        HashMap<Integer,String> sortedMap = new LinkedHashMap<Integer,String>();
+        for(Integer key: keys){
+            sortedMap.put(key, map.get(key));
+        }
+        return sortedMap;
+    }
+    
+    public List<String> getURLsByLink(String url_consulta) {
+        List<String> urls = new ArrayList<String>();
+        for (String url : pageLinks.get(url_consulta)) {
+            urls.add(url);
+        }
+        return urls;  
     }
 
     public static void main(String[] args) {
