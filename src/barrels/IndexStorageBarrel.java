@@ -12,6 +12,8 @@ import java.net.MulticastSocket;
 import java.net.NetworkInterface;
 import java.net.SocketAddress;
 import java.rmi.RemoteException;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -27,20 +29,20 @@ import java.util.Scanner;
 
 import downloader.URLData;
 
-public class IndexStorageBarrel{
+public class IndexStorageBarrel implements InterfaceISB{
 
     //Vê se concorda com a estrutura
     private HashMap<String, HashSet<String>> invertedIndex = new HashMap<String, HashSet<String>>();
     private HashMap<String, String> pageTitles = new HashMap<String, String>();
     private HashMap<String, String> pageContents = new HashMap<String, String>();
-    private HashMap<String, List<String>>pageLinks = new HashMap<String, List<String>>();
+    private HashMap<String, ArrayList<String>>pageLinks = new HashMap<String, ArrayList<String>>();
     private HashMap<String, Integer> pageLinksCount = new HashMap<String, Integer>();
     private HashSet<String> indexedUrls = new HashSet<String>();
     private ArrayList<String> urlsQueue = new ArrayList<String>();
     private HashMap<String, Integer> termCounts = new HashMap<String, Integer>();
     
     //Construtor
-    public IndexStorageBarrel() throws RemoteException {
+    public IndexStorageBarrel(String name) throws RemoteException {
         this.invertedIndex = new HashMap<>();
         this.pageTitles = new HashMap<>();
         this.pageContents = new HashMap<>();
@@ -90,7 +92,7 @@ public class IndexStorageBarrel{
     public void getInvertedIndex(){
         //System.out.println("Inverted Index: ");
         for (Map.Entry<String, HashSet<String>> entry : invertedIndex.entrySet()) {
-            //System.out.println("Term: " + entry.getKey() + " URLs: " + entry.getValue());
+            System.out.println("Term: " + entry.getKey() + " URLs: " + entry.getValue());
         }
     }
 
@@ -114,7 +116,7 @@ public class IndexStorageBarrel{
         return pageContents.get(url);
     }
 
-    public void addPageLinks(String url, List<String> links) throws RemoteException {
+    public void addPageLinks(String url, ArrayList<String> links) throws RemoteException {
         pageLinks.put(url, links);
     }
 
@@ -194,16 +196,37 @@ public class IndexStorageBarrel{
     
     public List<String> getURLsByLink(String url_consulta) {
         List<String> urls = new ArrayList<String>();
-        for (String url : pageLinks.get(url_consulta)) {
-            urls.add(url);
+        try {
+            for (String url : getPageLinks(url_consulta)) {
+                urls.add(url);
+            }
+        } catch (RemoteException e) {
+            e.printStackTrace();
         }
         return urls;  
     }
-
+    public ArrayList<String> getPagesThatLinksTo(String url){
+        ArrayList<String> pages = new ArrayList<String>();
+        for (String page : pageLinks.keySet()) {
+            ArrayList<String> links = pageLinks.get(page);
+            if (links.contains(url)) {
+                pages.add(page);
+            }
+        }
+        return pages;
+    }
+    public List<String> getURLs(){
+        List<String> urls = new ArrayList<String>();
+        for (String url : indexedUrls) {
+            urls.add(url);
+        }
+        return urls;
+    }
     public static void main(String[] args) {
 
         int multicastDownloadersPort, multicastBarrelsPort, multticastTTL, maxMulticastBytes;
         String host, registryName, multicastAddress, multicastInterface;
+        Integer port;
 
         maxMulticastBytes = 0;
         InetAddress group = null;
@@ -219,6 +242,7 @@ public class IndexStorageBarrel{
 
             
             host = prop.getProperty("host");
+            port = Integer.parseInt(prop.getProperty("port"));
             registryName = prop.getProperty("registryName");
 
             multicastDownloadersPort = Integer.parseInt(prop.getProperty("multicastDownloadersPort"));
@@ -284,7 +308,27 @@ public class IndexStorageBarrel{
                     }
                 }
             }
+            //Não sei se pode ficar aqui o barrel?
+            try {
+                //Create barrels
+                InterfaceISB barrel1 = new IndexStorageBarrel("Barrel1");
+                InterfaceISB barrel2 = new IndexStorageBarrel("Barrel2");
 
+                //Create registry and bind barrels
+                Registry registry = LocateRegistry.createRegistry(port);
+                registry.rebind("Barrel1", barrel1);
+                registry.rebind("Barrel2", barrel2);
+
+                System.out.println("Barrels created and bound to registry");
+                System.out.println("Press any key to exit...");
+                Scanner scanner = new Scanner(System.in);
+                scanner.nextLine();
+                scanner.close();
+                System.exit(0);
+            } catch (Exception e) {
+                System.err.println("Error starting barrels: " + e.getMessage());
+                e.printStackTrace();
+            }
         } catch (IOException e) {
             e.printStackTrace();
         } catch (InputMismatchException e) {

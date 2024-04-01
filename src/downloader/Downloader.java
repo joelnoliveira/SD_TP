@@ -158,7 +158,7 @@ public class Downloader {
                                     currentBytesLinks += link.attr("abs:href").getBytes().length;
                                     coupleLinks.append(link.attr("abs:href"));
 
-                                    gateway.addUrl(link.attr("abs:href"));
+                                    gateway.addUrl2Queue(link.attr("abs:href"));
                                     System.out.println(link.text() + "\n" + link.attr("abs:href") + "\n");
                                 }
 

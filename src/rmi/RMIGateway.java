@@ -9,52 +9,64 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.server.UnicastRemoteObject;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.InputMismatchException;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
+import java.util.Random;
 import java.util.Scanner;
 import java.util.concurrent.LinkedBlockingQueue;
-import barrels.IndexStorageBarrel;
+import barrels.InterfaceISB;
 
 public class RMIGateway extends UnicastRemoteObject implements InterfaceGateway {
 
     private int messageURLCounter = 0; // is incremented every time a URL is requested from the queue
     private LinkedBlockingQueue<String> urlQueue;
-    private IndexStorageBarrel barrel;
+    private Map<String, InterfaceISB> barrels;
 
     public RMIGateway() throws RemoteException {
         urlQueue = new LinkedBlockingQueue<>();
-        barrel = new IndexStorageBarrel();
+        barrels = new HashMap<>();
     }
 
-    // private boolean wasUrlQueued(String url) {
-            // TODO: FURUKAWA Implement this method
-            // Maybe should be implemented by going to one barrel and checking if the URL is already there
-            // This method should be used inside the addUrl method, in case the URL is already there, there is no need to add to the queue again
-    // }
-
-    public synchronized void addUrl(String url) { 
-        // synchronized is used to guarantee that the add url and checking if the URL is already there are atomic operations
-        
-        // if (!wasUrlQueued(url)) {
-            // urlQueue.add(url);
-        urlQueue.add(url);
-    }
     public String getNextUrl() throws InterruptedException {
         return messageURLCounter++ + " " + urlQueue.take();
     }
 
-    // Vou colocar só as funções que tenho
-    //
-        public synchronized void indexURL(String url) throws RemoteException {
-        //System.out.println("Indexing URL: " + url);
-        if (this.urlQueue != null && !this.urlQueue.contains(url)) {
-            this.urlQueue.add(url);
+    public InterfaceISB getRandomBarrel() {
+        Random rand = new Random();
+        List<String> keys = new ArrayList<String>(barrels.keySet());
+        String randomKey = keys.get(rand.nextInt(keys.size()));
+        return barrels.get(randomKey);
+    }
+
+    public void connect2Barrel() throws RemoteException{
+        try {
+            //Connect to barrels
+            Registry registry = LocateRegistry.getRegistry("localhost", 1099);
+            InterfaceISB barrel1 = (InterfaceISB) registry.lookup("Barrel1");
+            InterfaceISB barrel2 = (InterfaceISB) registry.lookup("Barrel2");
+           
+            //Add barrels to map
+            barrels.put("Barrel1", barrel1);
+            barrels.put("Barrel2", barrel2);
+            
+            System.out.println("Connected to barrels");
+            
+        } catch (Exception e) {
+            throw new RemoteException("Error connecting to barrels: " + e.getMessage());
         }
     }
-    public List<String> searchByTerms(String keywords) throws RemoteException {
-        //System.out.println("Consulting keywords: " + keywords);
+    public synchronized void addUrl2Queue(String url) throws RemoteException {
+        System.out.println("Indexing URL: " + url);
+        if (urlQueue != null && !urlQueue.contains(url) && !getRandomBarrel().getURLs().contains(url)) {
+            urlQueue.add(url);
+        }
+    }
+    public List<String> searchByTerms(String keywords, InterfaceISB barrel) throws RemoteException {
+        System.out.println("Consulting keywords: " + keywords);
         HashSet<String> urls = barrel.getURLsByTerms(keywords);
         List<String> results = new ArrayList<String>();
 
@@ -81,26 +93,25 @@ public class RMIGateway extends UnicastRemoteObject implements InterfaceGateway 
         }
         return results;
     }
-    public void consult(String url_consulta) {
+    public List<String> consult(String url_consulta, InterfaceISB barrel) throws RemoteException {
         System.out.println("Consulting URL: " + url_consulta);
-        List<String> urls_results = barrel.getURLsByLink(url_consulta);
-        if (urls_results == null) {
-            System.out.println("No results found");
-        } else {
-            for (String url : urls_results) {
-                System.out.println(url);
-            }
+        List<String> urls_results = barrel.getPagesThatLinksTo(url_consulta);
+        if (urls_results == null) { 
+            urls_results = new ArrayList<String>();
+            urls_results.add("No results found");
         }
-    }
+        return urls_results;
+    } 
     public void admin() {
         //TODO: Admin page
         System.out.println("Admin page");
     }
 
     public static void main(String args[]) {
-
+        int tries = 0;
         int port;
-        String defaultURL, registryName;
+        //String defaultURL; 
+        String registryName;
 
         try {
 
@@ -109,7 +120,7 @@ public class RMIGateway extends UnicastRemoteObject implements InterfaceGateway 
             prop.load(input);
 
             port = Integer.parseInt(prop.getProperty("port"));
-            defaultURL = prop.getProperty("defaultURL");
+            //defaultURL = prop.getProperty("defaultURL");
             registryName = prop.getProperty("registryName");
 
             System.out.println(LocalDateTime.now() + " : Configurations sucessfully loaded!");
@@ -121,22 +132,35 @@ public class RMIGateway extends UnicastRemoteObject implements InterfaceGateway 
             e.printStackTrace();
             return;
         }
+        while (tries < 3) {
+            try{
+                RMIGateway gw = new RMIGateway();
+                System.out.println(LocalDateTime.now() + " : RMIGateway instantiated.");
 
-        try {
-            // Instantiating the object
-            RMIGateway obj = new RMIGateway();
-            System.out.println(LocalDateTime.now() + " : RMIGateway instantiated.");
+                //Creating the registry
+                Registry registry = LocateRegistry.createRegistry(port);
+                registry.rebind(registryName, gw);
 
-            // Creating the registry
-            Registry registry = LocateRegistry.createRegistry(port);
-            registry.rebind(registryName, obj);
-            System.out.println(LocalDateTime.now() + " : RMIGateway is ready.");
-            
-            obj.addUrl(defaultURL);
-            System.out.println(LocalDateTime.now() + " : Default URL added to the queue.");
-
-        } catch (Exception e) {
-            System.out.println(LocalDateTime.now() + " : RMIGateway failed: " + e);
+                System.out.println(LocalDateTime.now() + " : RMIGateway is ready.");
+                System.out.println("Press ENTER to exit.");
+                Scanner scanner = new Scanner(System.in);
+                scanner.nextLine();
+                scanner.close();
+                System.exit(0);
+            } catch (Exception e) {
+                System.out.println(LocalDateTime.now() + " : RMIGateway failed: " + e);
+                System.out.println("Retrying in 5 seconds...");
+                try {
+                    Thread.sleep(5000);
+                } catch (InterruptedException e1) {
+                    e1.printStackTrace();
+                }
+                tries++;
+            }
+            if (tries == 3) {
+                System.out.println(LocalDateTime.now() + " : RMIGateway failed 3 times. Exiting...");
+                System.exit(1);
+            }
         }
     }
 }

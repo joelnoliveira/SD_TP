@@ -2,6 +2,7 @@ package barrels;
 
 import java.rmi.Remote;
 import java.rmi.RemoteException;
+import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 
@@ -27,11 +28,15 @@ public interface InterfaceISB extends Remote{
 
     String getPageContents(String url) throws RemoteException;
 
-    void addPageLinks(String url, List<String> link) throws RemoteException;
+    void addPageLinks(String url, ArrayList<String> link) throws RemoteException;
 
     List<String> getPageLinks(String url) throws RemoteException;
 
     void addPageLinksCount(String url, int count) throws RemoteException;
 
     int getPageLinksCount(String url) throws RemoteException;
+
+    ArrayList<String> getPagesThatLinksTo(String url) throws RemoteException;
+
+    List<String> getURLs() throws RemoteException;
 }
