@@ -2,11 +2,9 @@ package downloader;
 
 import org.jsoup.Jsoup;
 
-import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.ObjectOutputStream;
 import java.net.MulticastSocket;
 import java.net.NetworkInterface;
 import java.net.SocketAddress;
@@ -16,23 +14,20 @@ import org.jsoup.nodes.Element;
 import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
 
-import java.util.InputMismatchException;
 import java.util.Properties;
-import java.util.Scanner;
-import java.util.StringTokenizer;
 import java.rmi.registry.Registry;
 import java.time.LocalDateTime;
 import java.rmi.registry.LocateRegistry;
 import rmi.RMIGatewayRemote;
 
-import java.net.MulticastSocket;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 
 public class Downloader {
     public static void main(String args[]) {
-
+        int downloaderId;
+        int dataURLCounter = 0; // going to usefull in multicast for ordering and message loss control
         int linkSearchLimit, maxBytesTitle, maxBytesCitation, maxBytesTokens, maxBytesLinks, currentBytesLinks;
         int multicastDownloadersPort, multicastBarrelsPort, multticastTTL;
         String host, registryName, multicastAddress, multicastInterface;
@@ -41,9 +36,9 @@ public class Downloader {
         NetworkInterface networkInterface = null;
         
         try {// Load configurations
-
+            downloaderId = Integer.parseInt(args[0]);
             Properties prop = new Properties();
-            InputStream input = new FileInputStream(args[0]);
+            InputStream input = new FileInputStream(args[1]);
             prop.load(input);
 
             
@@ -92,112 +87,101 @@ public class Downloader {
                             System.out.println("-------------------------");
                             System.out.println("Remaining links until limit: " + linkSearchLimit);
         
-                            String urlWithCounter = gateway.getNextUrl();
+                            URLData urlData = new URLData();
+                            urlData.downloaderId = downloaderId;
+                            urlData.messageId = dataURLCounter++;
+                            urlData.pageURL = gateway.getNextUrl();
         
-                            System.out.println("URL with counter retrieved from the URL Queue: " + urlWithCounter);
+                            System.out.println("Message number: " + urlData.messageId);
         
-                            try (Scanner scanner = new Scanner(urlWithCounter)){ //Process the URL
+                            System.out.println("URL: " + urlData.pageURL);
         
-                                URLData urlData = new URLData();
-                                urlData.messageId = scanner.nextInt(); // going to usefull in multicast for ordering
+                            // Process the URL...
+                            Document doc = Jsoup.connect(urlData.pageURL).get();
+                            
+                            // ------------------------- Title -------------------------
+                            String string = doc.title();
+                            byte[] bytes = string.getBytes();
+                            int limit = Math.min(maxBytesTitle, bytes.length);
+                            string = new String(bytes, 0, limit);
 
-                                urlData.pageURL = scanner.next();
-            
-                                System.out.println("Message number: " + urlData.messageId);
-            
-                                System.out.println("URL: " + urlData.pageURL);
-            
-                                // Process the URL...
-                                Document doc = Jsoup.connect(urlData.pageURL).get();
+                            urlData.title = string.toLowerCase().replace("\n", " ");
+                            System.out.println("Title: " + urlData.title);
+
+                            // ------------------------- Text Citation -------------------------
+
+                            Elements paragraphs = doc.select("p");
+                            bytes = paragraphs.text().getBytes();
+                            limit = Math.min(maxBytesCitation, bytes.length);
+                            string = new String(bytes, 0, limit);
+
+                            urlData.textCitation = string.toLowerCase().replace("\n", " ");
+
+                            System.out.println("Text Citation: " + urlData.textCitation);
+
+                            // ------------------------- Tokens -------------------------
+                            
+                            doc.select("button, .slide").remove(); // remove text from buttons and slides
+                            string = doc.text();
+                            bytes = string.getBytes();
+                            limit = Math.min(maxBytesTokens, bytes.length);
+                            urlData.tokens = new String(bytes, 0, limit);
+                            urlData.tokens = urlData.tokens.toLowerCase().replace("\n", " ");
+                            System.out.println("Tokens: " + urlData.tokens);
+
+                
+                            // ------------------------- Links -------------------------
+                            
+                            Elements links = doc.select("a[href]");
+                            StringBuilder coupleLinks = new StringBuilder();
+                            currentBytesLinks = 0;
+
+                            for (Element link : links){
                                 
-                                // ------------------------- Title -------------------------
-                                String string = doc.title();
-                                byte[] bytes = string.getBytes();
-                                int limit = Math.min(maxBytesTitle, bytes.length);
-                                string = new String(bytes, 0, limit);
+                                // Check if the sum of the bytes of the links is greater than the limit
+                                if(link.attr("abs:href").getBytes().length + currentBytesLinks > maxBytesLinks)break;
+                                else if(currentBytesLinks > 0)coupleLinks.append(" ");
 
-                                urlData.title = string;
-                                System.out.println("Title: " + urlData.title);
+                                currentBytesLinks += link.attr("abs:href").getBytes().length;
+                                coupleLinks.append(link.attr("abs:href"));
 
-                                // ------------------------- Text Citation -------------------------
-
-                                Elements paragraphs = doc.select("p");
-                                bytes = paragraphs.text().getBytes();
-                                limit = Math.min(maxBytesCitation, bytes.length);
-                                string = new String(bytes, 0, limit);
-
-                                urlData.textCitation = string.toLowerCase().replace("\n", " ");
-
-                                System.out.println("Text Citation: " + urlData.textCitation);
-
-                                // ------------------------- Tokens -------------------------
-                                
-                                doc.select("button, .slide").remove(); // remove text from buttons and slides
-                                string = doc.text();
-                                bytes = string.getBytes();
-                                limit = Math.min(maxBytesTokens, bytes.length);
-                                urlData.tokens = new String(bytes, 0, limit);
-                                urlData.tokens = urlData.tokens.toLowerCase().replace("\n", " ");
-                                System.out.println("Tokens: " + urlData.tokens);
-
-                    
-                                // ------------------------- Links -------------------------
-                                
-                                Elements links = doc.select("a[href]");
-                                StringBuilder coupleLinks = new StringBuilder();
-                                currentBytesLinks = 0;
-
-
-
-                                for (Element link : links){
-                                    
-                                    // Check if the sum of the bytes of the links is greater than the limit
-                                    if(link.attr("abs:href").getBytes().length + currentBytesLinks > maxBytesLinks)break;
-                                    else if(currentBytesLinks > 0)coupleLinks.append(" ");
-
-                                    currentBytesLinks += link.attr("abs:href").getBytes().length;
-                                    coupleLinks.append(link.attr("abs:href"));
-
-                                    gateway.addUrl(link.attr("abs:href"));
-                                    System.out.println(link.text() + "\n" + link.attr("abs:href") + "\n");
-                                }
-
-                                urlData.links = coupleLinks.toString().toLowerCase().replace("\n", " ");
-            
-                                // TODO send data by RELIABLE MULTICAST to the Index Storage Barrels
-                                
-                                // ------------------------- Multicast -------------------------
-
-                                bytes = urlData.toString().getBytes(); // Convert the object to string and then to bytes and put it in the buffer
-                                System.out.println("Sending: " + urlData.toString());
-                                // Send a message
-                                DatagramPacket packet = new DatagramPacket(bytes, bytes.length, group, multicastBarrelsPort);
-                                socket.send(packet);
-        
-                                // TODO maybe implement threds
-        
-                                // Send data to the Index Storage Barrels by RELIABLE MULTICAST
-        
-                                // // Send a message
-                                // String message = "Hello from Downloader";
-                                // byte[] buffer = message.getBytes();
-                                // DatagramPacket packet = new DatagramPacket(buffer, buffer.length, group, multicastBarrelsPort);
-                                // socket.send(packet);
-                                
-                                // while (true) {
-                                    
-                                //     // Receive a message
-                                //     buffer = new byte[1000];
-                                //     packet = new DatagramPacket(buffer, buffer.length);
-                                //     socket.receive(packet);
-                                //     String received = new String(packet.getData(), 0, packet.getLength());
-                                //     System.out.println("Received: " + received + " from " + packet.getAddress() + ":" + packet.getPort());
-                                // }
-            
-                                linkSearchLimit--;
-                            } catch (Exception e) {
-                                e.printStackTrace();
+                                gateway.addUrl(link.attr("abs:href"));
+                                System.out.println(link.text() + "\n" + link.attr("abs:href") + "\n");
                             }
+
+                            urlData.links = coupleLinks.toString().toLowerCase().replace("\n", " ");
+        
+                            // TODO send data by RELIABLE MULTICAST to the Index Storage Barrels
+                            
+                            // ------------------------- Multicast -------------------------
+                            // TODO: add checksum to the message
+                            bytes = urlData.toString().getBytes(); // Convert the object to string and then to bytes and put it in the buffer
+                            System.out.println("Sending: " + urlData.toString());
+                            // Send a message
+                            DatagramPacket packet = new DatagramPacket(bytes, bytes.length, group, multicastBarrelsPort);
+                            socket.send(packet);
+    
+                            // TODO maybe implement threds
+    
+                            // Send data to the Index Storage Barrels by RELIABLE MULTICAST
+    
+                            // // Send a message
+                            // String message = "Hello from Downloader";
+                            // byte[] buffer = message.getBytes();
+                            // DatagramPacket packet = new DatagramPacket(buffer, buffer.length, group, multicastBarrelsPort);
+                            // socket.send(packet);
+                            
+                            // while (true) {
+                                
+                            //     // Receive a message
+                            //     buffer = new byte[1000];
+                            //     packet = new DatagramPacket(buffer, buffer.length);
+                            //     socket.receive(packet);
+                            //     String received = new String(packet.getData(), 0, packet.getLength());
+                            //     System.out.println("Received: " + received + " from " + packet.getAddress() + ":" + packet.getPort());
+                            // }
+        
+                            linkSearchLimit--;
                         }
 
                         // ------------------------- Scanner -------------------------
@@ -229,10 +213,7 @@ public class Downloader {
             }
             // ------------------------- MULTICAST -------------------------
 
-        } catch (IOException e) {
-            e.printStackTrace();
-            return;
-        } catch (InputMismatchException e) {
+        } catch (Exception e) {
             e.printStackTrace();
             return;
         }

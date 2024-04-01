@@ -10,33 +10,92 @@ import java.net.MulticastSocket;
 import java.net.NetworkInterface;
 import java.net.SocketAddress;
 import java.time.LocalDateTime;
-import java.util.InputMismatchException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Scanner;
 
 import downloader.URLData;
 
 public class IndexStorageBarrel{
+    private class DownloadersData{
+
+        private int contiguosMessages = 0; // The number of contiguos messages received from the downloaders
+        private Map<Integer, String> messagesMap = new HashMap<>(); // The map that will store the URLData string messages received from the downloaders during a certain length, so others barrels can recover lost messages
+    }
+
+    private Map<Integer, DownloadersData> downloadersDataMap = new HashMap<>(); // The map that will store the downloadersData objects where the key is the downloader's id
+
+    
     
     public void run() {
         System.out.println("IndexStorageBarrel is running");
     }
 
-    public void saveData(String data){
+    public void saveDownloaderMessage(String data){
 
+        boolean downloadersExists = false;
+        int downloaderId, messageId;
+        
         // Deserialize the data
         try (Scanner scanner = new Scanner(data)) {
-            scanner.nextLine(); // Skip the first line
+            
+            DownloadersData downloadersData = null;
+
+            scanner.nextLine(); // Skip the message type since was already checked
+            downloaderId = Integer.parseInt(scanner.nextLine());
+            messageId = Integer.parseInt(scanner.nextLine());
+
+            if((downloadersData = downloadersDataMap.get(downloaderId)) != null){
+
+                downloadersExists = true;
+
+                if(downloadersData.messagesMap.get(messageId) != null){
+                    System.out.println("The message from the downloader " + downloaderId + " with the id " + messageId + " was already received");
+                    return; // The message was already received
+                    // TODO: Send a message to the downloader to stop sending the same message aka send an ACK
+                }
+            }else downloadersData = new DownloadersData();
+
+            if(downloadersData.contiguosMessages > messageId){
+                System.out.println("The message(s) sent from downloader" + downloaderId + " before the message with the id " + messageId + " haven't arrived yet"); 
+                // Then the message(s) before this one was/were lost or haven't arrived yet
+
+                // start a thread with a timer to wait for the lost messages, if they don't arrive in time,
+                // ask another barrel for the lost messages
+
+            }
+
+            // whether the previous messages arrived or not, this message will be saved
+
+            // Save the data
+            downloadersData.messagesMap.put(messageId, data);
+            if(!downloadersExists) downloadersDataMap.put(downloaderId, downloadersData);
+            // else downloader exists, so the downloadersData object is already in the map
+
+            for (int i = downloadersData.contiguosMessages; i < downloadersData.messagesMap.size(); i++) {
+
+                if(downloadersData.messagesMap.get(i) != null)downloadersData.contiguosMessages++;
+                else break; // It may have more messages saved but they are not contiguos
+            }
+            
+            System.out.println(LocalDateTime.now() + " : The message from the downloader " + downloaderId + " with the id " + messageId + " was saved in ram," + " the number of contiguos messages is " + downloadersData.contiguosMessages);
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
 
+    public void saveData(String data){
+        
+        if(data.startsWith("type0")) saveDownloaderMessage(data); // if the data came from an downloader
     }
 
     public static void main(String[] args) {
-
+        int barrelId;
         int multicastDownloadersPort, multicastBarrelsPort, multticastTTL, maxMulticastBytes;
         String host, registryName, multicastAddress, multicastInterface;
+
+        IndexStorageBarrel barrel = new IndexStorageBarrel();
 
         maxMulticastBytes = 0;
         InetAddress group = null;
@@ -45,9 +104,10 @@ public class IndexStorageBarrel{
         NetworkInterface networkInterface = null;
 
         try {
+            barrelId = Integer.parseInt(args[0]);
             // Load configurations
             Properties prop = new Properties();
-            InputStream input = new FileInputStream(args[0]);
+            InputStream input = new FileInputStream(args[1]);
             prop.load(input);
 
             
@@ -87,9 +147,10 @@ public class IndexStorageBarrel{
                     socket.receive(packet);
                     
                     String received = new String(packet.getData(), 0, packet.getLength());
-                    System.out.println("Received: " + received);
+                    // System.out.println("Received: " + received);
 
-                    
+                    // TODO maybe start a thread to save the data, so the main thread can keep receiving messages
+                    barrel.saveData(received);
                 }
                 // // Receive a message
                 // byte[]buffer = new byte[1000];
@@ -118,9 +179,7 @@ public class IndexStorageBarrel{
                 }
             }
 
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (InputMismatchException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }

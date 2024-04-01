@@ -89,4 +89,6 @@ Estava a pensar também em ter words(tokens) desde o ínicio da página e outras
 
 ---
 
-Talvez em vez de ter um array com words, 
+Devemos verificar se a mensagem recebida por multicast está corrompida, certo?
+eu estava a pensar em adicionar à string com as informações a enviar, outra string de tamanho fixo, com tamanho em bytes da string que vai ser enivada
+Depois no receptor fazer o inverso e verificar, se der certo ok, se não está corrompido (UNDECIDED)

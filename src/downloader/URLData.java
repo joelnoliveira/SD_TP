@@ -4,7 +4,7 @@ import java.io.Serializable;
 
 public class URLData implements Serializable{
 
-    public int messageId;
+    public int downloaderId, messageId;
     public String pageURL, title, textCitation, tokens, links;
 
     public URLData() {
@@ -15,7 +15,7 @@ public class URLData implements Serializable{
     public String toString() {
         // return one each variable per line
 
-        return "type0\n" + messageId + "\n" +
+        return "type0\n" + downloaderId + "\n" + messageId + "\n" + 
          pageURL + "\n" + title + "\n" + textCitation + "\n" + tokens + "\n" + links;
     }
 }

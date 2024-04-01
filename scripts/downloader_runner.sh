@@ -1,15 +1,27 @@
 #!/bin/sh
 
+id=$(date +%N) # default id for the downloader
 input_path="config/downloaders.properties" # default input path relative to the root directory
-output_path="logs/downloader_$(date +%Y%m%d%H%M%S%N).txt" # default output path relative to the root directory
+
+# check if the user provides an id for the downloaders there mustn't be any other equal id
+if [ $# -gt 0 ]; then
+    if [[ $1 == *[^0-9]* ]]; then
+        echo "The id must be a number."
+        exit 1
+    else
+        id=$1
+    fi
+fi
+
+output_path="logs/downloader_$id.txt" # default output path relative to the root directory
 
 # if the user provides an input path, use it
-if [ $# -gt 0 ]; then
+if [ $# -gt 1 ]; then
         
     # check if the file exists and if it is a properties file otherwise warn the user
-    if [ -f $1 ]; then
-        if [[ $1 == *.properties ]]; then
-            input_path=$1
+    if [ -f $2 ]; then
+        if [[ $2 == *.properties ]]; then
+            input_path=$2
         else
             echo "The input file must be a properties file."
             exit 1
@@ -18,15 +30,17 @@ if [ $# -gt 0 ]; then
         echo "The input file does not exist."
         exit 1
     fi
+
+
 fi
 
 # if the user provides an output path, use it
-if [ $# -gt 1 ]; then
-    output_path=$2
+if [ $# -gt 2 ]; then
+    output_path=$3
 fi
 
 cd bin
 
-java -cp .:../lib/jars/jsoup-1.17.2.jar downloader.Downloader ../$input_path > ../$output_path
+java -cp .:../lib/jars/jsoup-1.17.2.jar downloader.Downloader $id ../$input_path > ../$output_path
 
 cd ..
