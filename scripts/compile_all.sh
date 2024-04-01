@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # In case there is a flag -delete_bin_before_compile or -clean_all, delete everything in the bin folder
 if [ "$1" = "-delete_bin_before_compile" ] || [ "$1" = "-clean_all" ]; then

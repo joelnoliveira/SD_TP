@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 id=$(date +%N) # default id for the downloader
 input_path="config/downloaders.properties" # default input path relative to the root directory

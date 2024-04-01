@@ -44,8 +44,6 @@ public class Downloader {
             
             host = prop.getProperty("host");
             registryName = prop.getProperty("registryName");
-
-            linkSearchLimit = Integer.parseInt(prop.getProperty("linkSearchLimit"));
             maxBytesTitle = Integer.parseInt(prop.getProperty("maxBytesTitle"));
             maxBytesCitation = Integer.parseInt(prop.getProperty("maxBytesCitation"));
             maxBytesTokens = Integer.parseInt(prop.getProperty("maxBytesTokens"));
@@ -82,10 +80,9 @@ public class Downloader {
                     System.out.println(LocalDateTime.now() + " : Gateway object retrieved!");
         
                     try {//Process the URL
-                        while (linkSearchLimit >= 0) {
+                        while (true) {
         
                             System.out.println("-------------------------");
-                            System.out.println("Remaining links until limit: " + linkSearchLimit);
         
                             URLData urlData = new URLData();
                             urlData.downloaderId = downloaderId;
@@ -180,8 +177,6 @@ public class Downloader {
                             //     String received = new String(packet.getData(), 0, packet.getLength());
                             //     System.out.println("Received: " + received + " from " + packet.getAddress() + ":" + packet.getPort());
                             // }
-        
-                            linkSearchLimit--;
                         }
 
                         // ------------------------- Scanner -------------------------

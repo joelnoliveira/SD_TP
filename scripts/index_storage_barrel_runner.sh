@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 id=$(date +%N) # default id for the index storage barrel
 input_path="config/index_storage_barrels.properties" # default input path relative to the root directory
@@ -39,6 +39,6 @@ fi
 
 cd bin
 
-java IndexStorageBarrel $id ../$input_path > ../$output_path
+java barrels.IndexStorageBarrel $id ../$input_path > ../$output_path
 
 cd ..
