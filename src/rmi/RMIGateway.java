@@ -20,7 +20,7 @@ import java.util.Scanner;
 import java.util.concurrent.LinkedBlockingQueue;
 import barrels.InterfaceISB;
 
-public class RMIGateway extends UnicastRemoteObject implements InterfaceGateway {
+public class RMIGateway extends UnicastRemoteObject implements RMIGatewayRemote {
 
     private int messageURLCounter = 0; // is incremented every time a URL is requested from the queue
     private LinkedBlockingQueue<String> urlQueue;

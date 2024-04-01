@@ -6,7 +6,7 @@ import java.util.List;
 
 import barrels.InterfaceISB;
 
-public interface InterfaceGateway extends Remote {
+public interface RMIGatewayRemote extends Remote {
     
     void addUrl2Queue(String url) throws RemoteException;
 

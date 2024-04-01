@@ -9,7 +9,7 @@ import java.rmi.registry.Registry;
 import java.util.List;
 import java.util.Scanner;
 
-public class RMIClient {
+public class RMICLient {
     public void menu() {
         System.out.println("-----Menu-----");
         System.out.println("1- Indexar um novo URL");
@@ -20,7 +20,7 @@ public class RMIClient {
         System.out.println("--------------");
         System.out.println("Digite a opção desejada: ");
     }
-    public void options(InterfaceGateway gateway,int option,Scanner sc) throws RemoteException{
+    public void options(RMIGatewayRemote gateway,int option,Scanner sc) throws RemoteException{
             switch(option){
                 case 1:
                     System.out.println("Digite o URL que deseja indexar:");
@@ -70,7 +70,7 @@ public class RMIClient {
         int num = sc.nextInt();
         return num;
     }
-    public void start(InterfaceGateway gateway,Scanner sc) throws RemoteException,NotBoundException, MalformedURLException {
+    public void start(RMIGatewayRemote gateway,Scanner sc) throws RemoteException,NotBoundException, MalformedURLException {
         int option;
         do {
             menu();
@@ -82,12 +82,12 @@ public class RMIClient {
 
     public static void main(String[] args) throws AccessException, RemoteException, NotBoundException, MalformedURLException {
         Registry registry = LocateRegistry.getRegistry("localhost");
-        InterfaceGateway gateway = (InterfaceGateway) registry.lookup("Gateway");
+        RMIGatewayRemote gateway = (RMIGatewayRemote) registry.lookup("Gateway");
         System.out.println("Gateway connected");
 
         gateway.connect2Barrel();
 
-        RMIClient client = new RMIClient();
+        RMICLient client = new RMICLient();
         Scanner sc = new Scanner(System.in);
         client.start(gateway,sc);
     }

@@ -23,7 +23,7 @@ import java.util.StringTokenizer;
 import java.rmi.registry.Registry;
 import java.time.LocalDateTime;
 import java.rmi.registry.LocateRegistry;
-import rmi.InterfaceGateway;
+import rmi.RMIGatewayRemote;
 
 import java.net.MulticastSocket;
 import java.net.DatagramPacket;
@@ -83,7 +83,7 @@ public class Downloader {
                     System.out.println(LocalDateTime.now() + " : Registry found!");
         
                     // Look up the registry for the remote object
-                    InterfaceGateway gateway = (InterfaceGateway) registry.lookup(registryName);
+                    RMIGatewayRemote gateway = (RMIGatewayRemote) registry.lookup(registryName);
                     System.out.println(LocalDateTime.now() + " : Gateway object retrieved!");
         
                     try {//Process the URL

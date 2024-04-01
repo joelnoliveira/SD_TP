@@ -5,7 +5,7 @@ if [ "$1" = "-delete_bin_before_compile" ] || [ "$1" = "-clean_all" ]; then
     rm -rf bin/*
 fi
 # Compile the RMIGateway
-javac -d bin src/rmi/RMIGateway.java src/rmi/InterfaceGateway.java
+javac -d bin src/rmi/RMIGateway.java src/rmi/RMIGatewayRemote.java
 
 # Compile the Downloader
 javac -d bin -cp .:bin:lib/jars/jsoup-1.17.2.jar src/downloader/Downloader.java src/downloader/URLData.java
