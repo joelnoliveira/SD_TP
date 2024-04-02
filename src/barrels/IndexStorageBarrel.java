@@ -13,25 +13,90 @@ import java.net.NetworkInterface;
 import java.net.SocketAddress;
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Scanner;
+import java.util.StringTokenizer;
+import java.util.concurrent.LinkedBlockingQueue;
 
 import downloader.URLData;
 
 public class IndexStorageBarrel{
     private class DownloadersData{
 
+        private int processedMessages = 0; // The number of messages processed from the downloader
         private int contiguosMessages = 0; // The number of contiguos messages received from the downloaders
         private Map<Integer, String> messagesMap = new HashMap<>(); // The map that will store the URLData string messages received from the downloaders during a certain length, so others barrels can recover lost messages
     }
 
-    private Map<Integer, DownloadersData> downloadersDataMap = new HashMap<>(); // The map that will store the downloadersData objects where the key is the downloader's id
+    private class URL{
 
+        private int relevance = 0; // Number of links that point to this url
+        private String title, url;
+        private List<Integer> links; // The id (document id) of the links that points to this url
+    }
     
+    private Map<Integer, DownloadersData> downloadersDataMap = new HashMap<>(); // The map that will store the downloadersData objects where the key is the downloader's id
+    private Map<Integer, URL> urlMap = new HashMap<>(); // Makes the correspondence between a number (aka doucument id) and a url
+    private Map<String, HashSet<Integer>> index = new HashMap<>(); // makes the correspondence between a word and the urls that contain it
     
+    // bloking queue
+    private LinkedBlockingQueue<String> dataToProcess = new LinkedBlockingQueue<>();
+
     public void run() {
         System.out.println("IndexStorageBarrel is running");
+    }
+
+    public void processData(){
+
+        int downloaderId, messageId, linkId;
+        String data = null;
+        
+        try {
+            
+            while((data = dataToProcess.take()) != null){
+
+                //tokenize the data
+                StringTokenizer tokens = new StringTokenizer(data);
+                downloaderId = Integer.parseInt(tokens.nextToken());
+                messageId = Integer.parseInt(tokens.nextToken());
+
+                // TODO add syncronized to were its needed to use threads
+
+                // Process the data
+                // Get the URLData object from the message
+                URLData urlData = new URLData();
+                tokens = new StringTokenizer(downloadersDataMap.get(downloaderId).messagesMap.get(messageId), "\n");
+                tokens.nextToken(); // Skip the message type
+                tokens.nextToken(); // Skip the downloaderId
+                tokens.nextToken(); // Skip the messageId
+                urlData.pageURL = tokens.nextToken();
+                urlData.title = tokens.nextToken();
+                urlData.textCitation = tokens.nextToken();
+                urlData.tokens = tokens.nextToken();
+                urlData.links = tokens.nextToken();
+
+                linkId = urlMap.size();
+                tokens = new StringTokenizer(urlData.links);
+
+                // while(tokens.hasMoreTokens()){
+
+                //     // check if the link is already in the urlMap, but check by string url not by id
+                //     //
+
+                // }
+
+
+
+
+
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
     }
 
     public void saveDownloaderMessage(String data){
@@ -39,7 +104,6 @@ public class IndexStorageBarrel{
         boolean downloadersExists = false;
         int downloaderId, messageId;
         
-        // Deserialize the data
         try (Scanner scanner = new Scanner(data)) {
             
             DownloadersData downloadersData = null;
@@ -80,8 +144,11 @@ public class IndexStorageBarrel{
                 if(downloadersData.messagesMap.get(i) != null)downloadersData.contiguosMessages++;
                 else break; // It may have more messages saved but they are not contiguos
             }
-            
+
             System.out.println(LocalDateTime.now() + " : The message from the downloader " + downloaderId + " with the id " + messageId + " was saved in ram," + " the number of contiguos messages is " + downloadersData.contiguosMessages);
+            
+            dataToProcess.put(downloaderId + " " + messageId); // Add the downloaderId and the messageId to the queue so the main thread can process the data
+
         } catch (Exception e) {
             e.printStackTrace();
         }

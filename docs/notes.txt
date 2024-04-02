@@ -92,3 +92,11 @@ Estava a pensar também em ter words(tokens) desde o ínicio da página e outras
 Devemos verificar se a mensagem recebida por multicast está corrompida, certo?
 eu estava a pensar em adicionar à string com as informações a enviar, outra string de tamanho fixo, com tamanho em bytes da string que vai ser enivada
 Depois no receptor fazer o inverso e verificar, se der certo ok, se não está corrompido (UNDECIDED)
+
+
+-------
+A profundiade de pesquisa é agora controlada pela gateway sendo que a profundidade é refeita caso o utilizador peça para fazer indexação a partir de um link
+-----
+
+As mensagens estão a ser guardadas em RAM nos downloaders para depois serem enviadas a outros barrels que precisem ou para serem processadas quando estiverem ordenadas quando o contiguos messages tiver encrementado?
+-> Mas se só processar-se quando as mensagens estiverem ordenadas é desperdício de tempo. Em vez disso fazer uma blocking queue que vai conter uma string com o id do downloader e o id da respetiva mensagem para serem processados.
