@@ -256,13 +256,13 @@ public class IndexStorageBarrel{
         return System.currentTimeMillis();
     }
 
-    public List<String> getMostSearchedTerms(int cap) {
+    public ArrayList<String> getMostSearchedTerms(int cap) throws RemoteException{
         // Convert termCounts map entries to a list for sorting
         List<Map.Entry<String, Integer>> sortedTerms = new ArrayList<>(termCounts.entrySet());
         // Sort the list in reverse order based on the values (term counts)
         sortedTerms.sort(Collections.reverseOrder(Map.Entry.comparingByValue()));
         // Initialize a list to store the top terms
-        List<String> topTerms = new ArrayList<>();
+        ArrayList<String> topTerms = new ArrayList<>();
         // Iterate over the sorted terms list and add top terms to the result list
         for (int i = 0; i < cap && i < sortedTerms.size(); i++) {
             topTerms.add(sortedTerms.get(i).getKey());
@@ -271,7 +271,7 @@ public class IndexStorageBarrel{
         return topTerms;
     }
     
-    public String getShortQuote(String url) throws RemoteException {
+    public String getShortQuote(String url)  throws RemoteException{
         // Retrieve URL data from the map based on the provided URL
         URL urlData = urlDataMap.get(url);
         // Check if URL data is found
@@ -304,7 +304,7 @@ public class IndexStorageBarrel{
         return urlData.title;
     }
     
-    public LinkedHashSet<String> getURLsByTerms(String terms) throws RemoteException {
+    public LinkedHashSet<String> getURLsByTerms(String terms) throws RemoteException{
         // Initialize an ArrayList to store individual terms
         ArrayList<String> termsList = new ArrayList<String>();
         // Split the input terms string into individual terms and add them to the list
@@ -346,7 +346,7 @@ public class IndexStorageBarrel{
         return getSortedByPageLinks(urls);
     }
     
-    public LinkedHashSet<String> getSortedByPageLinks(HashSet<String> termURLs) throws RemoteException {
+    public LinkedHashSet<String> getSortedByPageLinks(HashSet<String> termURLs) throws RemoteException{
         // Initialize a HashMap to store URLs grouped by relevance
         HashMap<Integer, ArrayList<String>> notSortedURLs = new HashMap<Integer, ArrayList<String>>();
     
@@ -408,7 +408,7 @@ public class IndexStorageBarrel{
         return sortedMap;
     }
     
-    public ArrayList<String> getPagesThatLinksTo(String url) {
+    public ArrayList<String> getPagesThatLinksTo(String url) throws RemoteException{
         // Initialize an ArrayList to store pages that link to the given URL
         ArrayList<String> pages = new ArrayList<String>();
     
@@ -433,7 +433,7 @@ public class IndexStorageBarrel{
         return pages;
     }
     
-    public boolean hasURL(String url) {
+    public boolean hasURL(String url) throws RemoteException{
         // Check if the urlDataMap contains the given URL
         return urlDataMap.containsKey(url);
     }

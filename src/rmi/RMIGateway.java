@@ -40,7 +40,7 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayRemote 
         return barrels.get(randomKey);
     }
 
-    public synchronized void addUrl(String url) { 
+    public synchronized void addUrl(String url) throws RemoteException { 
         // Synchronized is used to guarantee that the add url and checking if the URL is already there are atomic operations
         
         if(linkSearchCount > linkSearchDepth) return;
@@ -53,7 +53,7 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayRemote 
         return urlQueue.contains(url) ;
     }
 
-    public boolean wasUrlIndexed(String url) {
+    public boolean wasUrlIndexed(String url) throws RemoteException {
         for (IndexStorageBarrel barrel : barrels.values()) {
             if (barrel.hasURL(url)) {
                 return true;
@@ -85,57 +85,110 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayRemote 
     }
 
     public List<String> searchByTerms(String keywords, IndexStorageBarrel barrel) throws RemoteException {
-        System.out.println("Consulting keywords: " + keywords);
-        HashSet<String> urls = barrel.getURLsByTerms(keywords);
+
         List<String> results = new ArrayList<String>();
-    
-        if (urls == null) {
-            results.add("Não foram encontrados resultados para a pesquisa");
-        } else {
-            int i = 0;
-            for (String url : urls) {
-                if (i % 10 == 0) {
-                    int page = i / 10 + 1;
-                    results.add("\n-------- Página " + page + " --------\n");
+        Thread searchThread = new Thread(() -> {
+            try {
+                HashSet<String> urls = barrel.getURLsByTerms(keywords);
+                if (urls == null) {
+                    results.add("Não foram encontrados resultados para a pesquisa");
+                } else {
+                    int i = 0;
+                    for (String url : urls) {
+                        if (i % 10 == 0) {
+                            int page = i / 10 + 1;
+                            results.add("\n-------- Página " + page + " --------\n");
+                        }
+                        try {
+                            results.add(barrel.getPageTitle(url));
+                            results.add(url);
+                            results.add(barrel.getShortQuote(url));
+                            results.add("\n");
+                            i++;
+                        } catch (RemoteException e) {
+                            System.err.println("Erro ao obter título ou citação curta: " + e.getMessage());
+                            e.printStackTrace();
+                        }
+                    }
                 }
-                results.add(barrel.getPageTitle(url));
-                results.add(url);
-                results.add(barrel.getShortQuote(url));
-                results.add("\n");
-                i++;
+            } catch (RemoteException e) {
+                System.err.println("Erro ao pesquisar: " + e.getMessage());
             }
+        });
+
+        searchThread.start();
+
+        try {
+            searchThread.join();
+        } catch (InterruptedException e) {
+            System.out.println("Erro ao aguardar a conclusão da pesquisa: " + e.getMessage());
         }
-    
+
         return results;
     }
 
     public List<String> consult(String url_consulta, IndexStorageBarrel barrel) throws RemoteException {
-        System.out.println("Consultando URL: " + url_consulta);
-        List<String> urls_results = barrel.getPagesThatLinksTo(url_consulta);
-        System.out.println("URLs encontrados: " + urls_results.size());
+
         List<String> results = new ArrayList<>();
-    
-        if (urls_results == null || urls_results.isEmpty()) {
-            results.add("Nenhum resultado encontrado");
-        } else {
-            for (String result : urls_results) {
-                results.add(result);
+        
+        Thread consultThread = new Thread(()-> {
+            try {
+                List<String> urls_results = barrel.getPagesThatLinksTo(url_consulta);
+                if (urls_results.isEmpty()) {
+                    results.add("Nenhum resultado encontrado");
+                } else {
+                    results.addAll(urls_results);
+                    }
+            } catch (RemoteException e) {
+                System.err.println("Erro ao consultar: " + e.getMessage());
             }
+        });
+        
+       consultThread.start();
+
+       try {
+           consultThread.join();
+        } catch (InterruptedException e) {
+              System.out.println("Erro ao aguardar a conclusão da consulta: " + e.getMessage());
         }
-    
+
         return results;
-    }   
+    }
 
     public List<String> topSearches(IndexStorageBarrel barrel) throws RemoteException {
-        List<String> topTerms = barrel.getMostSearchedTerms(10);
+        
+        ArrayList<String> topTerms = new ArrayList<>();
+        
+        Thread topSearchesThread = new Thread(() -> {
+            try {
+                ArrayList<String> terms = barrel.getMostSearchedTerms(10);
+                if (terms.isEmpty()) {
+                    topTerms.add("Nenhum termo pesquisado");
+                }
+            } catch (RemoteException e) {
+                System.err.println("Erro ao obter termos mais pesquisados: " + e.getMessage());
+            }
+        });
+        
+        topSearchesThread.start();
+
+        try {
+            topSearchesThread.join();
+        } catch (InterruptedException e) {
+            System.out.println("Erro ao aguardar a conclusão da pesquisa: " + e.getMessage());
+        }
 
         return topTerms;
     }
 
-    public List<String> getBarrelsList(){
+    public List<String> getBarrelsList() throws RemoteException{
         List<String> list = new ArrayList<>();
-        for (String key : barrels.keySet()) {
-            list.add(key);
+        try {
+            for (String key : barrels.keySet()) {
+                list.add(key);
+            }
+        } catch (Exception e) {
+            System.err.println("Erro ao obter lista de barrels: " + e.getMessage());
         }
         return list;
     }
@@ -146,9 +199,11 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayRemote 
 
     public long getResponseTime(IndexStorageBarrel barrel) throws RemoteException {
         long startTime = System.currentTimeMillis();
-
-        long pongTime = barrel.ping();
-
+        try {
+            barrel.ping();
+        } catch (RemoteException e) {
+            System.err.println("Erro ao obter tempo de resposta: " + e.getMessage());
+        }
         long endTime = System.currentTimeMillis();
 
         long tempoResposta = endTime - startTime;
