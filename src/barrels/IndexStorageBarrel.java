@@ -53,7 +53,7 @@ public class IndexStorageBarrel{
     private Map<String, HashSet<Integer>> index = new HashMap<>(); // makes the correspondence between a word and the urls that contain it
     private Map<String, Integer> termCounts = new HashMap<>(); // The number of times a term was searched
     
-    // blocking queue
+    // Blocking queue
     private LinkedBlockingQueue<String> dataToProcess = new LinkedBlockingQueue<>();
 
     public void run() {
@@ -257,53 +257,84 @@ public class IndexStorageBarrel{
     }
 
     public List<String> getMostSearchedTerms(int cap) {
+        // Convert termCounts map entries to a list for sorting
         List<Map.Entry<String, Integer>> sortedTerms = new ArrayList<>(termCounts.entrySet());
+        // Sort the list in reverse order based on the values (term counts)
         sortedTerms.sort(Collections.reverseOrder(Map.Entry.comparingByValue()));
+        // Initialize a list to store the top terms
         List<String> topTerms = new ArrayList<>();
+        // Iterate over the sorted terms list and add top terms to the result list
         for (int i = 0; i < cap && i < sortedTerms.size(); i++) {
             topTerms.add(sortedTerms.get(i).getKey());
         }
+        // Return the list of top terms
         return topTerms;
     }
-
+    
     public String getShortQuote(String url) throws RemoteException {
+        // Retrieve URL data from the map based on the provided URL
         URL urlData = urlDataMap.get(url);
+        // Check if URL data is found
         if (urlData == null) {
-            return "URL não encontrada";
+            // Return a message indicating that the URL is not found
+            return "URL not found";
         }
+        // Retrieve the text content from the URL data
         String text = urlData.textCitation;
+        // Check if text content exists
         if (text == null) {
+            // If no text content is available, return an empty string
             return "";
         }
-        String quote = text.substring(0, Math.min(40, text.length()))+"...";
+        // Extract a short quote from the text content, limited to 40 characters or the length of the text if shorter
+        String quote = text.substring(0, Math.min(40, text.length())) + "...";
+        // Return the short quote
         return quote;
     }
-
+    
     public String getPageTitle(String url) throws RemoteException {
+        // Retrieve URL data from the map based on the provided URL
         URL urlData = urlDataMap.get(url);
+        // Check if URL data is found
         if (urlData == null) {
-            return "URL não encontrada";
+            // Return a message indicating that the URL is not found
+            return "URL not found";
         }
+        // Return the title of the URL data
         return urlData.title;
     }
+    
     public LinkedHashSet<String> getURLsByTerms(String terms) throws RemoteException {
+        // Initialize an ArrayList to store individual terms
         ArrayList<String> termsList = new ArrayList<String>();
+        // Split the input terms string into individual terms and add them to the list
         for (String term : terms.split(" ")) {
             termsList.add(term);
+            // Increment the count of each term in the termCounts map
             termCounts.merge(term, 1, Integer::sum);
         }
+        // Initialize a HashSet to store URLs
         HashSet<String> urls = new HashSet<String>();
+        // Flag to track if it's the first term in the loop
         boolean firstTerm = true;
+        // Iterate over each term in the termsList
         for (String term : termsList) {
+            // Retrieve the set of URLs associated with the current term from the index
             HashSet<Integer> termURLsIndexes = index.get(term);
+            // Check if the term is found in the index
             if (termURLsIndexes == null) {
-                return null; // Termo não encontrado
+                return null; // Term not found
             }
+            // Initialize a HashSet to store URLs associated with the current term
             HashSet<String> termURLs = new HashSet<>();
+            // Iterate over each index in the set of URLs associated with the current term
             for (int index : termURLsIndexes) {
+                // Retrieve the URL from the urlMap based on the index and add it to the termURLs set
                 String url = urlMap.get(index);
                 termURLs.add(url);
             }
+            // If it's the first term, add all URLs associated with the first term to the urls set
+            // Otherwise, retain only the common URLs between the current set and the set of URLs associated with the previous term
             if (firstTerm) {
                 urls.addAll(termURLs);
                 firstTerm = false;
@@ -311,67 +342,102 @@ public class IndexStorageBarrel{
                 urls.retainAll(termURLs);
             }
         }
+        // Return a sorted set of URLs by page links
         return getSortedByPageLinks(urls);
     }
     
     public LinkedHashSet<String> getSortedByPageLinks(HashSet<String> termURLs) throws RemoteException {
-        HashMap <Integer,List<String>> notSortedURLs = new HashMap<Integer,List<String>>();
+        // Initialize a HashMap to store URLs grouped by relevance
+        HashMap<Integer, ArrayList<String>> notSortedURLs = new HashMap<Integer, ArrayList<String>>();
+    
+        // Group URLs by number of links (caso seja isso)
+        //for (String url : termURLs) {
+        //    int nLinks = urlDataMap.get(url).links.size();
+        //    if (!notSortedURLs.containsKey(nLinks)) {
+        //        notSortedURLs.put(nLinks, new ArrayList<String>());
+        //    }
+        //    notSortedURLs.get(nLinks).add(url);
+        //}
 
-        for(String url: termURLs){
+        // Sort URLs by relevance
+        for (String url : termURLs) {
             int rel = urlDataMap.get(url).relevance;
-            if(!notSortedURLs.containsKey(rel)){
+            if (!notSortedURLs.containsKey(rel)) {
                 notSortedURLs.put(rel, new ArrayList<String>());
             }
             notSortedURLs.get(rel).add(url);
         }
-
-        Map<Integer,List<String>> sortedURLs = sortByKeys(notSortedURLs);
-
-        System.out.println("Sorted URLs: " + sortedURLs);
-
+    
+        // Sort URLs by relevance
+        Map<Integer, ArrayList<String>> sortedURLs = sortByKeys(notSortedURLs);
+    
+        // Initialize a LinkedHashSet to store sorted URLs
         LinkedHashSet<String> sortedURLsSet = new LinkedHashSet<String>();
+    
+        // Get the keys (relevance values) in descending order
         List<Integer> keys = new ArrayList<>(sortedURLs.keySet());
         Collections.reverse(keys);
-
+    
+        // Add URLs to the sorted set in descending relevance order
         for (Integer key : keys) {
             List<String> urls = sortedURLs.get(key);
-            Collections.sort(urls);
+            Collections.sort(urls); // Sort URLs lexicographically
             sortedURLsSet.addAll(urls);
         }
-
+    
+        // Return the sorted set of URLs
         return sortedURLsSet;
     }
-
-    public static Map<Integer,List<String>> sortByKeys(HashMap<Integer,List<String>> map){
-        ArrayList<Map.Entry<Integer, List<String>>> list = new ArrayList<>(map.entrySet());
+    
+    public static Map<Integer, ArrayList<String>> sortByKeys(HashMap<Integer, ArrayList<String>> map) {
+        // Convert the map entries to a list
+        ArrayList<Map.Entry<Integer, ArrayList<String>>> list = new ArrayList<>(map.entrySet());
+        
+        // Sort the list of entries by keys (relevance values) in descending order
         list.sort((o1, o2) -> o2.getKey().compareTo(o1.getKey()));
-
-        Map<Integer,List<String>> sortedMap = new LinkedHashMap<>();
-        for(Map.Entry<Integer, List<String>> entry : list){
+    
+        // Create a LinkedHashMap to store the sorted entries
+        Map<Integer, ArrayList<String>> sortedMap = new LinkedHashMap<>();
+        
+        // Add the sorted entries to the LinkedHashMap
+        for (Map.Entry<Integer, ArrayList<String>> entry : list) {
             sortedMap.put(entry.getKey(), entry.getValue());
         }
+        
+        // Return the sorted map
         return sortedMap;
     }
-    public ArrayList<String> getPagesThatLinksTo(String url){
+    
+    public ArrayList<String> getPagesThatLinksTo(String url) {
+        // Initialize an ArrayList to store pages that link to the given URL
         ArrayList<String> pages = new ArrayList<String>();
-
+    
+        // Iterate over each entry in the urlDataMap
         for (Map.Entry<String, URL> entry : urlDataMap.entrySet()) {
-            String page = entry.getKey();
-            HashSet<Integer> urlsIDs = entry.getValue().links;
+            String page = entry.getKey(); // Get the page URL
+            HashSet<Integer> urlsIDs = entry.getValue().links; // Get the set of URLs linked from the page
             ArrayList<String> links = new ArrayList<String>();
+            
+            // Convert the set of URL IDs to a list of URLs
             for (int id : urlsIDs) {
                 links.add(urlMap.get(id));
             }
+    
+            // Check if the list of links contains the given URL
             if (links.contains(url)) {
-                pages.add(page);
+                pages.add(page); // If the URL is found, add the page to the list
             }
         }
+        
+        // Return the list of pages that link to the given URL
         return pages;
     }
-
-    public boolean hasURL(String url){
+    
+    public boolean hasURL(String url) {
+        // Check if the urlDataMap contains the given URL
         return urlDataMap.containsKey(url);
     }
+    
 
     public static void main(String[] args) {
         int barrelId;

@@ -61,7 +61,7 @@ public class RMICLient {
                     for (String b : barrels) {
                         System.out.println(b);
                     }
-                    System.out.println("Tempo de resposta: " + gateway.calcularTempoResposta(gateway.getRandomBarrel()) + "ms");
+                    System.out.println("Tempo de resposta: " + gateway.getResponseTime(gateway.getRandomBarrel()) + "ms");
                     break;
                 case 5:
                     System.out.println("Sair");

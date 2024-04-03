@@ -30,6 +30,9 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayRemote 
         barrels = new HashMap<>();
     }
 
+    // Não sei como você quer que escolha de qual barrel pegar, então fiz um random
+    // Só que quando inicializar tem que adicionar os barrels no map
+
     public IndexStorageBarrel getRandomBarrel() {
         Random rand = new Random();
         List<String> keys = new ArrayList<String>(barrels.keySet());
@@ -38,7 +41,7 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayRemote 
     }
 
     public synchronized void addUrl(String url) { 
-        // synchronized is used to guarantee that the add url and checking if the URL is already there are atomic operations
+        // Synchronized is used to guarantee that the add url and checking if the URL is already there are atomic operations
         
         if(linkSearchCount > linkSearchDepth) return;
             if (!wasUrlQueued(url) && !wasUrlIndexed(url)) {
@@ -141,7 +144,7 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayRemote 
         return urlQueue;
     }
 
-    public long calcularTempoResposta(IndexStorageBarrel barrel) throws RemoteException {
+    public long getResponseTime(IndexStorageBarrel barrel) throws RemoteException {
         long startTime = System.currentTimeMillis();
 
         long pongTime = barrel.ping();
@@ -149,12 +152,6 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayRemote 
         long endTime = System.currentTimeMillis();
 
         long tempoResposta = endTime - startTime;
-
-        long tempoIdaVolta = endTime - pongTime;
-
-        // Imprime o tempo de resposta e o tempo de ida e volta
-        System.out.println("Tempo de resposta: " + tempoResposta + "ms");
-        System.out.println("Tempo de ida e volta (round-trip time): " + tempoIdaVolta + "ms");
 
         return tempoResposta;
     }

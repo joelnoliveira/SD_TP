@@ -21,7 +21,7 @@ public interface RMIGatewayRemote extends Remote {
 
     List<String> getBarrelsList() throws RemoteException;
 
-    long calcularTempoResposta(IndexStorageBarrel barrel) throws RemoteException;
+    long getResponseTime(IndexStorageBarrel barrel) throws RemoteException;
 
     LinkedBlockingQueue<String> getQueue() throws RemoteException;
 
