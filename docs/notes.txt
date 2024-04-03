@@ -141,3 +141,9 @@ Talvez ir removendo algumas mensagens da RAM dos IndexStorageBarrels, pois ao fi
 
 ---------------------------------------
 
+Como proceder para guardar as mensagens em disco? (UNDICIDED)
+-> I was tinking in have the messages "strings" in ram and then after a limit remove them from the ram and save them to disk, do you consider it a good ideia? However i would have to watch to execeptions and or SIGNALS so data wouldnt be lost
+-> Fazer uma variável no properties do barrel que indica a frequência com que as mensagens vão ser gravadas em disco, e uma outra variável com a frequência que as mensagens vão ser libertadas da RAM (sendo esta um rácio das vezes em que as mensagens são gravadas em disco)
+-> O que acontece se algumas mensagens anteriores não terem sido ainda recebidas, guardar em disco as anteriores à mesma? (UNDICIDED)
+
+

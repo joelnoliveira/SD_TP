@@ -11,10 +11,13 @@ import java.time.LocalDateTime;
 import java.util.InputMismatchException;
 import java.util.Properties;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicInteger;
+
 
 public class RMIGateway extends UnicastRemoteObject implements RMIGatewayRemote {
 
     private int linkSearchDepth = 0, linkSearchCount = 0;
+    private AtomicInteger messageId = new AtomicInteger(0);
     private LinkedBlockingQueue<String> urlQueue;
 
     public RMIGateway() throws RemoteException {
@@ -40,6 +43,10 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayRemote 
 
     public String getNextUrl() throws InterruptedException {
         return urlQueue.take();
+    }
+
+    public int getNewMessageId() {
+        return messageId.getAndIncrement(); // This method is atomic
     }
 
     public static void main(String args[]) {
