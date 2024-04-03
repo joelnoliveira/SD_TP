@@ -53,25 +53,29 @@ Quando um barrel novo é inserido, como é que ele pede os dados aos outros, ser
 		-> Ver se o número do id da mensagem que chegou por multicast dos downloaders não irá funcionar, visto que uma página pode ser mais demorada de processar do que outra e então poderia estar-se a fazer pedidos de recuperação a outros barrels sem ser necessário. Pode-se usar a mesma estratégia mas usar um contador por downloader enviando na mensagem o id do downloader que pode ser o tempo em que ele foi executado no scipt que pode ser passado por parametro, e mandando também a contagem das mensagens para esse downloader, sendo assim possível ver no barrel que perdeu-se uma mensagem, contudo mesmo assim seja melhor ter o período de tempo de espera antes de enviar pedido de recuperação a outro barrel, pois a linha pode estar apenas congestionada e o packet pode só estar atrasado
 
 Talvez um novo barrel ou um barrel com pedidos perdidos faça um pedido por multicast para ver se alguém o pode ajudar, e depois de alguém lhe responde com sim, e com o seu nome (podia ser o timestamp em que o script foi corrido) e com a porta (maybe??) fazer uma conexação udp ou tcp? (UNDECIDED)
-->
+->Quem ouvir o pedido de ajuda manda a(s) mensagem(s) me falta por multicast
 
 Um problema aqui também seria que desta maneira um barrel só deteta que perdeu mensagens se receber mensagens a seguir às que estão em falta, se não nunca as deteta? (UNDICIDED)
 -> Talvez fazer uma pedido periódico de verificação aos outros barrels, e os outros barrels enviarem a sua contagem de mensagens atual, para o barrel mais atrasado pedir informação ao barrel menos atrasado, caso contrário os atrasos iriam persistir.
 
 Além disso como seria o envio da informação em falta, seria por exemplo no caso de apenas em alguns pedidos em falta mandar apenas esses pedidos para depois os barrels "os compuatacionarem e armazenarem os dados" e no caso de um novo barrel apenas mandar já os dados já "computacionados", ou mandar em ambas as situações dados por computactionar ou em ambas situações dados já computacionados??? (UNDICIDED)
 -> Mas depois os downloaders estiverem sempre a mandar informação para os barrels um barrel que esteja atrasado poderá ficar infinitamente atrasado. (UNDICIDED)
+-> Mandar sempre para outros barrels com mensagens em falta (inclusive os acabados de criar) as mensagens, para serem processadas, o mesmo para armazenamento persistente, armazenar num ficheiro objeto as mensagens rcebidas dos downloaders.
 
 
 Além disso poderá estar a atrasar outro barrel que não estava atrasado ao estar constantemente a pedir por pedidos perdidos, como resolver? (UNDICIDED)
 -> Talvez usar threads para cada processo barrel, em que o barrel iria receber pedidos novos vindos dos downloaders mas não os processava apenas os punha num array, depois quando esse array já não tivesse buracos, processava os pedidos.
+-> As mensagens recebidas (nos Barrels) se não forem repetidas, são sempre armazenadas em RAM e depois é mandado um pedido para uma blocking queue "dataToProcess" cujo uma thread vai processar.
 
 Como seria feita a tal contagem das mensagens??
 -> As mensagens vindas dos downloaders, talvez fosse boa ideia quando o downloader está a inserir urls na URLQUEUE do RMIGateway, essa queue armazenar juntamente com cada url, um contador associado, permitindo assim quando um downloader fosse buscar um URL, estar sincronnizado com os outros downloaders quanto ao número da mensagem multicast que vai mandar aos barrels? (UNDICIDED)
+->Cada downloader tem um contador de mensagens (urls) que mandou, e que é mandado juntamente com as informações do URL, para que assim o Barrel consiga dar por falta de mensagens.
 
 Talvez implementar threads nos downloaders para que a thread principal continue a tirar links da queue e a por, e vão sendo chamadas threads que ficam a tentar mandar as informações por multicast para os downloaders, os downloader que mandou as informações para os barrels depois fecharia a thread após ter recibo 2 ou mais acks com os números das mensagens. (UNDICIDED)
 
 ---------
-Considerar ter diferentes portas nos downloaders relativamente aos barrels para evitar por exemplo que um downloader receba a sua própria mensagem(UNDICIDED)
+Considerar ter diferentes portas nos downloaders relativamente aos barrels para evitar por exemplo que um downloader receba a sua própria mensagem
+-> Está default com portas diferentes, mas é possível aleterar nons .properties
 
 
 -------------
@@ -81,6 +85,7 @@ Relembrar que quandoo crawler pesquisa tokens na página eles são sempre conver
 ----
 Como saber na hora de receber nos barrels o packet vindo do multicast dos downloaders quanto espaço é que ocupa? (UNDICIDED)
 -> Talvez limitar por bytes o número de tokens (soma de bytes), ir adicionando parágrafos para a text citation, desde que não exceda o limite de bytes, e ir adicionando tokens, palavras 
+-> No ficheiro properties tem definido o tamanho máximo em Bytes para cada componete
 
 -------
 
@@ -100,3 +105,31 @@ A profundiade de pesquisa é agora controlada pela gateway sendo que a profundid
 
 As mensagens estão a ser guardadas em RAM nos downloaders para depois serem enviadas a outros barrels que precisem ou para serem processadas quando estiverem ordenadas quando o contiguos messages tiver encrementado?
 -> Mas se só processar-se quando as mensagens estiverem ordenadas é desperdício de tempo. Em vez disso fazer uma blocking queue que vai conter uma string com o id do downloader e o id da respetiva mensagem para serem processados.
+
+
+--------------------------------------------------------------
+ Ver o tratamento de falhas, observar (Not implemented)
+
+
+ ./scripts/downloader_runner.sh 1
+java.net.SocketTimeoutException: Connect timed out
+        at java.base/sun.nio.ch.NioSocketImpl.timedFinishConnect(NioSocketImpl.java:551)
+        at java.base/sun.nio.ch.NioSocketImpl.connect(NioSocketImpl.java:602)
+        at java.base/java.net.SocksSocketImpl.connect(SocksSocketImpl.java:327)
+        at java.base/java.net.Socket.connect(Socket.java:633)
+        at java.base/sun.security.ssl.SSLSocketImpl.connect(SSLSocketImpl.java:304)
+        at java.base/sun.net.NetworkClient.doConnect(NetworkClient.java:178)
+        at java.base/sun.net.www.http.HttpClient.openServer(HttpClient.java:533)
+        at java.base/sun.net.www.http.HttpClient.openServer(HttpClient.java:638)
+        at java.base/sun.net.www.protocol.https.HttpsClient.<init>(HttpsClient.java:266)
+        at java.base/sun.net.www.protocol.https.HttpsClient.New(HttpsClient.java:380)
+        at java.base/sun.net.www.protocol.https.AbstractDelegateHttpsURLConnection.getNewHttpClient(AbstractDelegateHttpsURLConnection.java:193)
+        at java.base/sun.net.www.protocol.http.HttpURLConnection.plainConnect0(HttpURLConnection.java:1242)
+        at java.base/sun.net.www.protocol.http.HttpURLConnection.plainConnect(HttpURLConnection.java:1128)
+        at java.base/sun.net.www.protocol.https.AbstractDelegateHttpsURLConnection.connect(AbstractDelegateHttpsURLConnection.java:179)
+        at java.base/sun.net.www.protocol.https.HttpsURLConnectionImpl.connect(HttpsURLConnectionImpl.java:142)
+        at org.jsoup.helper.HttpConnection$Response.execute(HttpConnection.java:848)
+        at org.jsoup.helper.HttpConnection$Response.execute(HttpConnection.java:818)
+        at org.jsoup.helper.HttpConnection.execute(HttpConnection.java:346)
+        at org.jsoup.helper.HttpConnection.get(HttpConnection.java:331)
+        at downloader.Downloader.main(Downloader.java:97)

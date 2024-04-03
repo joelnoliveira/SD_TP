@@ -24,22 +24,27 @@ import java.util.concurrent.LinkedBlockingQueue;
 import downloader.URLData;
 
 public class IndexStorageBarrel{
+
+    // Messages
     private class DownloadersData{
 
         private int processedMessages = 0; // The number of messages processed from the downloader
         private int contiguosMessages = 0; // The number of contiguos messages received from the downloaders
         private Map<Integer, String> messagesMap = new HashMap<>(); // The map that will store the URLData string messages received from the downloaders during a certain length, so others barrels can recover lost messages
     }
+    private Map<Integer, DownloadersData> downloadersDataMap = new HashMap<>(); // The map that will store the downloadersData objects where the key is the downloader's id
 
+
+    // Processed data
     private class URL{
 
-        private int relevance = 0; // Number of links that point to this url
-        private String title, url;
-        private List<Integer> links; // The id (document id) of the links that points to this url
+        private int id = 0,relevance = 0; // Number of links that point to this url
+        private String title, textCitation;
+        private HashSet<Integer> links; // The id (document id) of the links that points to this url
     }
     
-    private Map<Integer, DownloadersData> downloadersDataMap = new HashMap<>(); // The map that will store the downloadersData objects where the key is the downloader's id
-    private Map<Integer, URL> urlMap = new HashMap<>(); // Makes the correspondence between a number (aka doucument id) and a url
+    private Map<Integer, String> urlMap = new HashMap<>(); // Makes the correspondence between a number (aka doucument id) and a url, even tough the processed data is identified by url, the index will help save space when regestering for each url the links that point to it
+    private Map<String, URL> urlDataMap = new HashMap<>(); // Makes the correspondence between a url and the URLData object
     private Map<String, HashSet<Integer>> index = new HashMap<>(); // makes the correspondence between a word and the urls that contain it
     
     // bloking queue
@@ -49,10 +54,20 @@ public class IndexStorageBarrel{
         System.out.println("IndexStorageBarrel is running");
     }
 
-    public void processData(){
+    private void loadDataFromDisk(){
+        // TODO
 
-        int downloaderId, messageId, linkId;
+    }
+    private void saveDataToDisk(){
+        // TODO
+
+    }
+
+    synchronized void processData(){
+
+        int downloaderId, messageId, id, currentPageId;
         String data = null;
+        URL url = null;
         
         try {
             
@@ -68,7 +83,7 @@ public class IndexStorageBarrel{
                 // Process the data
                 // Get the URLData object from the message
                 URLData urlData = new URLData();
-                tokens = new StringTokenizer(downloadersDataMap.get(downloaderId).messagesMap.get(messageId), "\n");
+                tokens = new StringTokenizer(downloadersDataMap.get(downloaderId).messagesMap.get(messageId), "\n"); // use only "\n" as delimiter
                 tokens.nextToken(); // Skip the message type
                 tokens.nextToken(); // Skip the downloaderId
                 tokens.nextToken(); // Skip the messageId
@@ -78,15 +93,62 @@ public class IndexStorageBarrel{
                 urlData.tokens = tokens.nextToken();
                 urlData.links = tokens.nextToken();
 
-                linkId = urlMap.size();
+                id = urlMap.size(); // Document id
                 tokens = new StringTokenizer(urlData.links);
 
-                // while(tokens.hasMoreTokens()){
+                String link;
 
-                //     // check if the link is already in the urlMap, but check by string url not by id
-                //     //
+                // Check if the url is already in the urlDataMap
+                if(urlDataMap.get(urlData.pageURL) == null){ // if it is not
 
-                // }
+                    // create a new URL object
+                    url = new URL();
+                    url.id = currentPageId = id++;
+                    url.relevance = 0; // the relevance is 0 because the url is being added for the first time
+                    url.title = urlData.title;
+                    url.textCitation = urlData.textCitation;
+                    urlMap.put(id, urlData.pageURL); // add the page url to the urlMap
+                    urlDataMap.put(urlData.pageURL, url); // add the page url to the urlDataMap
+
+                }else{// the url is already in the urlDataMap
+
+                    url = urlDataMap.get(urlData.pageURL);
+                    currentPageId = urlDataMap.get(urlData.pageURL).id;
+                    
+                    // Check if the title and by consequence the textCitation are there, if not add them
+                    if(url.title == null){
+                        url.title = urlData.title;
+                        url.textCitation = urlData.textCitation;
+                    }
+                }
+
+                while(tokens.hasMoreTokens()){ // process the links
+
+                    link = tokens.nextToken();
+
+                    // check if the referenced link is already in the urlDataMap and by consequence in the urlMap
+                    if(urlDataMap.get(tokens.nextToken()) == null){ // if it is not
+
+                        // create a new URL object
+                        url = new URL();
+                        url.relevance = 1; // the relevance is 1 because the link is being added for the first time, and because it was referenced by the current page
+                        urlMap.put(id++, link); // add the link to the urlMap
+                        url.links.add(currentPageId); //  add the id of the referencing page to the URL object
+                        urlDataMap.put(link, url); // add the link to the urlDataMap
+
+                    }else{// the link is already in the urlDataMap
+
+                        url = urlDataMap.get(link);
+
+                        // try to add the id of the referencing page to the URL object
+                        if(url.links.add(currentPageId)==true)url.relevance++; // increment the relevance, because the link was referenced by the current page
+                        // else the link was already referenced by the current page (repeated link in the page)                        
+                    }
+                }
+
+                // Process the tokens and textCitation words
+                
+
 
 
 
@@ -99,7 +161,7 @@ public class IndexStorageBarrel{
 
     }
 
-    public void saveDownloaderMessage(String data){
+    private void saveDownloaderMessage(String data){
 
         boolean downloadersExists = false;
         int downloaderId, messageId;
@@ -154,7 +216,7 @@ public class IndexStorageBarrel{
         }
     }
 
-    public void saveData(String data){
+    private void saveData(String data){
         
         if(data.startsWith("type0")) saveDownloaderMessage(data); // if the data came from an downloader
     }
