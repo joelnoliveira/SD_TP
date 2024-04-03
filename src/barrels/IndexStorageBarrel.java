@@ -44,7 +44,7 @@ public class IndexStorageBarrel{
     }
     
     private Map<Integer, String> urlMap = new HashMap<>(); // Makes the correspondence between a number (aka doucument id) and a url, even tough the processed data is identified by url, the index will help save space when regestering for each url the links that point to it
-    private Map<String, URL> urlDataMap = new HashMap<>(); // Makes the correspondence between a url and the URLData object
+    private Map<String, URL> urlDataMap = new HashMap<>(); // Makes the correspondence between a url and its data (the URLData object)
     private Map<String, HashSet<Integer>> index = new HashMap<>(); // makes the correspondence between a word and the urls that contain it
     
     // bloking queue
@@ -147,18 +147,48 @@ public class IndexStorageBarrel{
                 }
 
                 // Process the tokens and textCitation words
-                
+                tokens = new StringTokenizer(urlData.tokens);
 
+                String word;
 
+                while(tokens.hasMoreTokens()){ // process the tokens
 
+                    word = tokens.nextToken();
 
+                    // Check if the word is already in the index
+                    if(index.get(word) == null){ // if it is not
 
+                        HashSet<Integer> urls = new HashSet<>();
+                        urls.add(currentPageId);
+                        index.put(word, urls);
 
+                    }else index.get(word).add(currentPageId); // the word is already in the index
+                }
+
+                tokens = new StringTokenizer(urlData.textCitation);
+
+                while(tokens.hasMoreTokens()){ // process the textCitation
+
+                    word = tokens.nextToken();
+
+                    // Check if the word is already in the index
+                    if(index.get(word) == null){ // if it is not
+
+                        HashSet<Integer> urls = new HashSet<>();
+                        urls.add(currentPageId);
+                        index.put(word, urls);
+
+                    }else index.get(word).add(currentPageId); // the word is already in the index
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
 
+    synchronized String search(int batchNumber, String query){
+
+        return "result";
     }
 
     private void saveDownloaderMessage(String data){

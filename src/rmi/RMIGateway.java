@@ -30,7 +30,7 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayRemote 
     public synchronized void addUrl(String url) { 
         // synchronized is used to guarantee that the add url and checking if the URL is already there are atomic operations
         
-        if(linkSearchCount >= linkSearchDepth) return;
+        if(linkSearchCount > linkSearchDepth) return;
         // if (!wasUrlQueued(url)) {
             
             urlQueue.add(url);
@@ -66,10 +66,13 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayRemote 
                 Registry registry = LocateRegistry.createRegistry(port);
                 registry.rebind(registryName, gateway);
                 System.out.println(LocalDateTime.now() + " : RMIGateway is ready.");
+
+                if(defaultURL.length()>0){
+
+                    gateway.addUrl(defaultURL);
+                    System.out.println(LocalDateTime.now() + " : Default URL added to the queue.");
+                }
                 
-                gateway.addUrl(defaultURL);
-                System.out.println(LocalDateTime.now() + " : Default URL added to the queue.");
-    
             } catch (Exception e) {
                 System.out.println(LocalDateTime.now() + " : RMIGateway failed: " + e);
             }

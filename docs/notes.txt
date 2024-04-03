@@ -133,3 +133,11 @@ java.net.SocketTimeoutException: Connect timed out
         at org.jsoup.helper.HttpConnection.execute(HttpConnection.java:346)
         at org.jsoup.helper.HttpConnection.get(HttpConnection.java:331)
         at downloader.Downloader.main(Downloader.java:97)
+
+
+-------------------------------------
+
+Talvez ir removendo algumas mensagens da RAM dos IndexStorageBarrels, pois ao fim de algum tempo irão consumir muita, considerar caso algum outro barrel pessa uma mensagem que já foi armazanada, carregá-la do disco e enviar. (UNDICIDED)
+
+---------------------------------------
+
