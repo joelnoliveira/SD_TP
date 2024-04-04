@@ -51,19 +51,31 @@ public class IndexStorageBarrel{
     // Blocking queue
     private LinkedBlockingQueue<String> dataToProcess = new LinkedBlockingQueue<>();
 
+    /**
+     * Method to start the IndexStorageBarrel.
+     */
     public void run() {
         System.out.println("IndexStorageBarrel is running");
     }
 
+    /**
+     * Method to load data from disk into the IndexStorageBarrel.
+     */
     private void loadDataFromDisk(){
-        // TODO
-
+        // TODO: Implement loading data from disk
     }
+
+    /**
+     * Method to save data from the IndexStorageBarrel to disk.
+     */
     private void saveDataToDisk(){
-        // TODO
-
+        // TODO: Implement saving data to disk
     }
 
+    /**
+    * Method to process the data received by the Downloader.
+    * Synchcronized to avoid problems with the threads.
+    */
     synchronized void processData(){
 
         int downloaderId, messageId, id, currentPageId;
@@ -186,7 +198,11 @@ public class IndexStorageBarrel{
         }
 
     }
-
+    /**
+     * Method to save the downloader message and handle message sequence.
+     * 
+     * @param data The data received from the downloader.
+     */
     private void saveDownloaderMessage(String data){
 
         int downloaderId, messageId;
@@ -233,16 +249,35 @@ public class IndexStorageBarrel{
         }
     }
 
+    /**
+     * Method to save data received by the IndexStorageBarrel.
+     * 
+     * @param data The data to be saved.
+     */
     private void saveData(String data){
         
-        if(data.startsWith("type0")) saveDownloaderMessage(data); // if the data came from an downloader
+        if(data.startsWith("type0")) saveDownloaderMessage(data); // if the data came from a downloader
     }
 
+
+    /**
+     * Method to ping the IndexStorageBarrel.
+     * 
+     * @return The current system time in milliseconds.
+     * @throws RemoteException If there is a remote communication problem.
+     */
     public long ping() throws RemoteException{
         return System.currentTimeMillis();
     }
 
-    public ArrayList<String> getMostSearchedTerms(int cap) throws RemoteException{
+    /**
+     * Method to retrieve the most searched terms from the IndexStorageBarrel.
+     * 
+     * @param cap The maximum number of top terms to retrieve.
+     * @return An ArrayList containing the top searched terms.
+     * @throws RemoteException If there is a remote communication problem.
+     */
+    public synchronized ArrayList<String> getMostSearchedTerms(int cap) throws RemoteException{
         // Convert termCounts map entries to a list for sorting
         List<Map.Entry<String, Integer>> sortedTerms = new ArrayList<>(termCounts.entrySet());
         // Sort the list in reverse order based on the values (term counts)
@@ -257,6 +292,13 @@ public class IndexStorageBarrel{
         return topTerms;
     }
     
+    /**
+     * Method to retrieve a short quote from the text content of a URL.
+     * 
+     * @param url The URL for which to retrieve the short quote.
+     * @return A short quote extracted from the text content of the URL, or a message indicating that the URL is not found if the URL data is not available, or an empty string if no text content is available.
+     * @throws RemoteException If there is a remote communication problem.
+     */
     public String getShortQuote(String url)  throws RemoteException{
         // Retrieve URL data from the map based on the provided URL
         URL urlData = urlDataMap.get(url);
@@ -278,6 +320,13 @@ public class IndexStorageBarrel{
         return quote;
     }
     
+    /**
+     * Method to retrieve the title of a webpage associated with a given URL.
+     * 
+     * @param url The URL for which to retrieve the webpage title.
+     * @return The title of the webpage associated with the URL, or a message indicating that the URL is not found if the URL data is not available.
+     * @throws RemoteException If there is a remote communication problem.
+     */
     public String getPageTitle(String url) throws RemoteException {
         // Retrieve URL data from the map based on the provided URL
         URL urlData = urlDataMap.get(url);
@@ -290,7 +339,14 @@ public class IndexStorageBarrel{
         return urlData.title;
     }
     
-    public LinkedHashSet<String> getURLsByTerms(String terms) throws RemoteException{
+    /**
+     * Retrieves a set of URLs associated with the provided search terms.
+     *
+     * @param terms The search terms for which to retrieve URLs.
+     * @return A set of URLs associated with the provided search terms, or null if the terms are not found in the index.
+     * @throws RemoteException If there is a remote communication problem.
+     */
+    public synchronized LinkedHashSet<String> getURLsByTerms(String terms) throws RemoteException{
         // Initialize an ArrayList to store individual terms
         ArrayList<String> termsList = new ArrayList<String>();
         // Split the input terms string into individual terms and add them to the list
@@ -332,20 +388,18 @@ public class IndexStorageBarrel{
         return getSortedByPageLinks(urls);
     }
     
+    /**
+     * Retrieves a set of URLs sorted by relevance based on the provided term URLs.
+     *
+     * @param termURLs The set of URLs associated with the search terms.
+     * @return A sorted set of URLs based on relevance, or null if the term URLs are empty.
+     * @throws RemoteException If there is a remote communication problem.
+     */
     public LinkedHashSet<String> getSortedByPageLinks(HashSet<String> termURLs) throws RemoteException{
         // Initialize a HashMap to store URLs grouped by relevance
         HashMap<Integer, ArrayList<String>> notSortedURLs = new HashMap<Integer, ArrayList<String>>();
     
-        // Group URLs by number of links (caso seja isso)
-        //for (String url : termURLs) {
-        //    int nLinks = urlDataMap.get(url).links.size();
-        //    if (!notSortedURLs.containsKey(nLinks)) {
-        //        notSortedURLs.put(nLinks, new ArrayList<String>());
-        //    }
-        //    notSortedURLs.get(nLinks).add(url);
-        //}
-
-        // Sort URLs by relevance
+        // Sort URLs by relevance(number of links pointing to them)
         for (String url : termURLs) {
             int rel = urlDataMap.get(url).relevance;
             if (!notSortedURLs.containsKey(rel)) {
@@ -373,8 +427,14 @@ public class IndexStorageBarrel{
         // Return the sorted set of URLs
         return sortedURLsSet;
     }
-    
-    public static Map<Integer, ArrayList<String>> sortByKeys(HashMap<Integer, ArrayList<String>> map) {
+
+    /**
+     * Sorts a map of lists by keys (relevance values) in descending order.
+     *
+     * @param map The map to be sorted.
+     * @return A LinkedHashMap containing the sorted entries.
+     */
+    public Map<Integer, ArrayList<String>> sortByKeys(HashMap<Integer, ArrayList<String>> map) {
         // Convert the map entries to a list
         ArrayList<Map.Entry<Integer, ArrayList<String>>> list = new ArrayList<>(map.entrySet());
         
@@ -392,8 +452,14 @@ public class IndexStorageBarrel{
         // Return the sorted map
         return sortedMap;
     }
-    
-    public ArrayList<String> getPagesThatLinksTo(String url) throws RemoteException{
+    /**
+     * Retrieves the list of pages that link to the specified URL.
+     *
+     * @param url The URL to find linking pages for.
+     * @return The list of pages that link to the specified URL.
+     * @throws RemoteException If a remote communication error occurs.
+     */
+    public synchronized ArrayList<String> getPagesThatLinksTo(String url) throws RemoteException{
         // Initialize an ArrayList to store pages that link to the given URL
         ArrayList<String> pages = new ArrayList<String>();
     
@@ -417,13 +483,23 @@ public class IndexStorageBarrel{
         // Return the list of pages that link to the given URL
         return pages;
     }
-    
+    /**
+     * Verifies if the URL storage contains the specified URL.
+     *
+     * @param url The URL to check for existence.
+     * @return {@code true} if the URL storage contains the specified URL, {@code false} otherwise.
+     * @throws RemoteException If a remote communication error occurs.
+     */
     public boolean hasURL(String url) throws RemoteException{
         // Check if the urlDataMap contains the given URL
         return urlDataMap.containsKey(url);
     }
     
-
+    /**
+     * The main method for starting the Index Storage Barrel.
+     *
+     * @param args Command-line arguments containing the barrel ID and configuration file path.
+     */
     public static void main(String[] args) {
         int barrelId;
         int multicastDownloadersPort, multicastBarrelsPort, multticastTTL, maxMulticastBytes;
@@ -517,5 +593,4 @@ public class IndexStorageBarrel{
             e.printStackTrace();
         }
     }
-
 }

@@ -24,7 +24,13 @@ import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 
+
 public class Downloader {
+    /**
+     * Main method to start the Downloader.
+     *
+     * @param args Command-line arguments containing downloaderId and configuration file path.
+     */
     public static void main(String args[]) {
         int downloaderId;
         int dataURLCounter = 0; // going to usefull in multicast for ordering and message loss control
