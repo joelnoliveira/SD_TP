@@ -34,9 +34,8 @@ public class RMICLient {
                     System.out.println("Digite os termos de pesquisa:");
                     String keywords = sc.nextLine().toLowerCase();
                     List<String> res = gateway.searchByTerms(keywords, gateway.getRandomBarrel());
-                    for (String r : res) {
-                        System.out.println(r);
-                    }
+                    System.out.println("Resultado da pesquisa: ");
+                    printPage(res, sc);
                     break;
                 case 3:
                     System.out.println("Digite o URL que deseja consultar: ");
@@ -88,6 +87,22 @@ public class RMICLient {
             sc.nextLine();
             options(gateway,option,sc);
         } while (option != 5);
+    }
+
+    public void printPage(List<String> res, Scanner sc){
+        String clientinput = "";
+        int i = 0;
+        for (String r : res){
+            System.out.println(r);
+            if(i%10 == 0 && i != 0){
+                System.out.println("Digite 's' para sair ou qualquer tecla para continuar");
+                clientinput = sc.nextLine().toLowerCase();
+                if(clientinput.equals("s")){
+                    break;
+                }
+            }
+            i++;
+        }
     }
 
     public static void main(String[] args) throws AccessException, RemoteException, NotBoundException, MalformedURLException {

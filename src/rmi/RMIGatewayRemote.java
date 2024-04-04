@@ -28,4 +28,6 @@ public interface RMIGatewayRemote extends Remote {
     String getNextUrl() throws InterruptedException;
 
     void addUrl(String url) throws RemoteException;
+
+    int getNewMessageId() throws RemoteException;
 }

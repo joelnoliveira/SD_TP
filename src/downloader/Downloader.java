@@ -85,10 +85,9 @@ public class Downloader {
                             System.out.println("-------------------------");
         
                             URLData urlData = new URLData();
-                            urlData.downloaderId = downloaderId;
-                            urlData.messageId = dataURLCounter++;
                             urlData.pageURL = gateway.getNextUrl();
-        
+                            urlData.downloaderId = downloaderId;
+                            
                             System.out.println("Message number: " + urlData.messageId);
         
                             System.out.println("URL: " + urlData.pageURL);
@@ -151,6 +150,7 @@ public class Downloader {
                             // TODO send data by RELIABLE MULTICAST to the Index Storage Barrels
                             
                             // ------------------------- Multicast -------------------------
+                            urlData.messageId = gateway.getNewMessageId(); // Increment the message id
                             // TODO: add checksum to the message
                             bytes = urlData.toString().getBytes(); // Convert the object to string and then to bytes and put it in the buffer
                             System.out.println("Sending: " + urlData.toString());

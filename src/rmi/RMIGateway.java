@@ -16,18 +16,23 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import barrels.IndexStorageBarrel;
-import downloader.URLData;
 
 public class RMIGateway extends UnicastRemoteObject implements RMIGatewayRemote {
     private Map<String, IndexStorageBarrel> barrels;
     private int linkSearchDepth = 0, linkSearchCount = 0;
     private LinkedBlockingQueue<String> urlQueue;
+    private AtomicInteger messageId = new AtomicInteger(0);
 
     public RMIGateway() throws RemoteException {
         urlQueue = new LinkedBlockingQueue<>();
         barrels = new HashMap<>();
+    }
+
+    public int getNewMessageId() {
+        return messageId.getAndIncrement(); // This method is atomic
     }
 
     // Não sei como você quer que escolha de qual barrel pegar, então fiz um random
@@ -93,18 +98,9 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayRemote 
                 if (urls == null) {
                     results.add("Não foram encontrados resultados para a pesquisa");
                 } else {
-                    int i = 0;
                     for (String url : urls) {
-                        if (i % 10 == 0) {
-                            int page = i / 10 + 1;
-                            results.add("\n-------- Página " + page + " --------\n");
-                        }
                         try {
-                            results.add(barrel.getPageTitle(url));
-                            results.add(url);
-                            results.add(barrel.getShortQuote(url));
-                            results.add("\n");
-                            i++;
+                            results.add(barrel.getPageTitle(url) + " - " + url + "\n" + barrel.getShortQuote(url) + "\n");
                         } catch (RemoteException e) {
                             System.err.println("Erro ao obter título ou citação curta: " + e.getMessage());
                             e.printStackTrace();
@@ -124,7 +120,21 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayRemote 
             System.out.println("Erro ao aguardar a conclusão da pesquisa: " + e.getMessage());
         }
 
-        return results;
+        return groupResults(results);
+    }
+
+    public List<String> groupResults(List<String> results){
+        int i = 0;
+        List<String> groupedResults = new ArrayList<>();
+        for (String result : results) {
+            if (i % 10 == 0){
+                int page = i / 10 + 1;
+                groupedResults.add("\n-------- Página " + page + " --------\n");
+            }
+            groupedResults.add(result);
+            i++;
+        }
+        return groupedResults;
     }
 
     public List<String> consult(String url_consulta, IndexStorageBarrel barrel) throws RemoteException {
