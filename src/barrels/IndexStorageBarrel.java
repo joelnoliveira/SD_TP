@@ -380,16 +380,21 @@ public class IndexStorageBarrel{
 
             // Save the data
             messagesMap.put(messageId, data);
+            String message;
 
             for (int i = contiguosMessages; i < messagesMap.size(); i++) {
 
-                if(messagesMap.get(i) != null)contiguosMessages++;
+                if((message = messagesMap.get(i)) != null)contiguosMessages++;
                 else break; // It may have more messages saved but they are not contiguos
             }
-
+            
             System.out.println(LocalDateTime.now() + " : The message from the downloader " + downloaderId + " with the id " + messageId + " was saved in ram," + " the number of contiguos messages is " + contiguosMessages);
             
             dataToProcess.put(messageId); // Add the messageId to the queue so the main thread can process the data
+            
+            message = "type2\n" + downloaderId + "\n" + messageId;
+            toBeSentMessages.put(message); // add the message to the toBeSentMessages queue
+            // TDOD fazer o donwloader receber o ack
 
         } catch (Exception e) {
             e.printStackTrace();

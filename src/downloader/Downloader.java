@@ -16,6 +16,7 @@ import org.jsoup.select.Elements;
 
 import java.util.Properties;
 import java.util.StringTokenizer;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.rmi.registry.Registry;
 import java.time.LocalDateTime;
 import java.net.ConnectException;
@@ -27,17 +28,80 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 
 public class Downloader {
+
+    private int multicastBarrelsPort;
+    private InetAddress group = null;
+    private MulticastSocket socket = null;
+
+    private LinkedBlockingQueue<String> receivedMessages = new LinkedBlockingQueue<>();
+    private LinkedBlockingQueue<String> toBeSentMessages = new LinkedBlockingQueue<>();
+
+    private void receiver(){
+
+        byte[] bytes = new byte[1024];
+        String string;
+
+        while (true) {
+            try {
+                DatagramPacket packet = new DatagramPacket(bytes, bytes.length);
+                socket.receive(packet);
+                string = new String(packet.getData(), 0, packet.getLength());
+                System.out.println("Received: " + string);
+                receivedMessages.put(string);
+
+            } catch (Exception e){
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private void acksChecker(){
+
+        // pop the message from the queue receivedMessages
+        // check if the message is an ack (type 2) at beggining
+        // if it is check the next token to see if it is from this downloader
+        // at last check the message id
+        // TODO: implement this
+
+
+    }
+
+    private void sender(){
+
+        byte[] bytes;
+        String string;
+
+        while (true) {
+
+            try {
+                string = toBeSentMessages.take();
+                bytes = string.getBytes(); // Convert the object to string and then to bytes and put it in the buffer
+                System.out.println("Sending: " + string);
+                // Send a message
+                DatagramPacket packet = new DatagramPacket(bytes, bytes.length, group, multicastBarrelsPort);
+                socket.send(packet);
+
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            } catch (Exception e){
+                e.printStackTrace();
+            }
+        }
+    }
+
     public static void main(String args[]) {
+
         int downloaderId;
-        int dataURLCounter = 0; // going to usefull in multicast for ordering and message loss control
-        int linkSearchLimit, maxBytesTitle, maxBytesCitation, maxBytesTokens, maxBytesLinks, currentBytesLinks;
-        int multicastDownloadersPort, multicastBarrelsPort, multticastTTL;
+        int maxBytesTitle, maxBytesCitation, maxBytesTokens, maxBytesLinks, currentBytesLinks;
+        int multicastDownloadersPort, multticastTTL;
         String host, registryName, multicastAddress, multicastInterface;
-        InetAddress group = null;
         SocketAddress socketAddress = null;
         NetworkInterface networkInterface = null;
         
         try {// Load configurations
+
+            Downloader downloader = new Downloader();
+
             downloaderId = Integer.parseInt(args[0]);
             Properties prop = new Properties();
             InputStream input = new FileInputStream(args[1]);
@@ -52,7 +116,7 @@ public class Downloader {
             maxBytesLinks = Integer.parseInt(prop.getProperty("maxBytesLinks"));
 
             multicastDownloadersPort = Integer.parseInt(prop.getProperty("multicastDownloadersPort"));
-            multicastBarrelsPort = Integer.parseInt(prop.getProperty("multicastBarrelsPort"));
+            downloader.multicastBarrelsPort = Integer.parseInt(prop.getProperty("multicastBarrelsPort"));
             multicastAddress = prop.getProperty("multicastAddress");
             multicastInterface = prop.getProperty("multicastInterface");
             multticastTTL = Integer.parseInt(prop.getProperty("multicastTTL"));
@@ -60,17 +124,16 @@ public class Downloader {
 
             System.out.println(LocalDateTime.now() + " : Configurations sucessfully loaded!");
             
-            MulticastSocket socket = null;
             try {// Create a multicast socket
 
-                socket = new MulticastSocket(multicastDownloadersPort);
+                downloader.socket = new MulticastSocket(multicastDownloadersPort);
                 System.out.println(LocalDateTime.now() + " : Multicast socket created!");
 
-                group = InetAddress.getByName(multicastAddress);
-                socketAddress = new InetSocketAddress(group, multicastBarrelsPort);
+                downloader.group = InetAddress.getByName(multicastAddress);
+                socketAddress = new InetSocketAddress(downloader.group, downloader.multicastBarrelsPort);
                 networkInterface = NetworkInterface.getByName(multicastInterface);
-                socket.joinGroup(socketAddress, networkInterface);
-                socket.setTimeToLive(multticastTTL);
+                downloader.socket.joinGroup(socketAddress, networkInterface);
+                downloader.socket.setTimeToLive(multticastTTL);
 
                 try {// Create the registry
 
@@ -80,6 +143,15 @@ public class Downloader {
                     // Look up the registry for the remote object
                     RMIGatewayRemote gateway = (RMIGatewayRemote) registry.lookup(registryName);
                     System.out.println(LocalDateTime.now() + " : Gateway object retrieved!");
+
+                    // -------- Threads --------
+                    new Thread(() -> {
+                        downloader.sender(); // Send messages to the Index Storage Barrels
+                    }).start();
+
+                    new Thread(() -> {
+                        downloader.receiver(); // Recives acks from the Index Storage Barrels
+                    }).start();
                      
                     while (true) {
                         try {//Process the URL
@@ -154,14 +226,9 @@ public class Downloader {
                             // ------------------------- Multicast -------------------------
                             urlData.messageId = gateway.getNewMessageId(); // Increment the message id
                             // TODO: maybe add checksum to the message
-                            bytes = urlData.toString().getBytes(); // Convert the object to string and then to bytes and put it in the buffer
-                            System.out.println("Sending: " + urlData.toString());
-                            // Send a message
-                            DatagramPacket packet = new DatagramPacket(bytes, bytes.length, group, multicastBarrelsPort);
-                            socket.send(packet);
                             
-                            // TODO maybe implement threds
-                            
+                            downloader.toBeSentMessages.put(urlData.toString());
+
                             // Send data to the Index Storage Barrels by RELIABLE MULTICAST
                             
                             // ------------------------- Scanner -------------------------
@@ -171,8 +238,7 @@ public class Downloader {
                         }
                         catch (IOException e) {
                             e.printStackTrace();
-                        }
-                        
+                        } 
                     }
                     // ------------------------- CROWLER -------------------------
                             
@@ -186,10 +252,10 @@ public class Downloader {
             } catch (IOException e) {
                 System.out.println("Error creating multicast socket: " + e.getMessage());
             } finally {
-                if (socket != null) {
+                if (downloader.socket != null) {
                     try {
-                        socket.leaveGroup(socketAddress, networkInterface);
-                        socket.close();
+                        downloader.socket.leaveGroup(socketAddress, networkInterface);
+                        downloader.socket.close();
                     } catch (IOException e) {
                         System.out.println("Error closing multicast socket: " + e.getMessage());
                     }
