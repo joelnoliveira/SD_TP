@@ -30,4 +30,10 @@ public interface RMIGatewayRemote extends Remote {
     void addUrl(String url) throws RemoteException;
 
     int getNewMessageId() throws RemoteException;
+
+    boolean wasUrlQueued(String url) throws RemoteException;
+
+    boolean wasUrlIndexed(String url) throws RemoteException;
+
+    List<String> groupResults(List<String> results) throws RemoteException;
 }
