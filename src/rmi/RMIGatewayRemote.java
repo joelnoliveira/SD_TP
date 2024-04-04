@@ -3,6 +3,7 @@ package rmi;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import barrels.IndexStorageBarrel;
@@ -21,8 +22,6 @@ public interface RMIGatewayRemote extends Remote {
 
     List<String> getBarrelsList() throws RemoteException;
 
-    long getResponseTime(IndexStorageBarrel barrel) throws RemoteException;
-
     LinkedBlockingQueue<String> getQueue() throws RemoteException;
 
     String getNextUrl() throws InterruptedException;
@@ -36,4 +35,6 @@ public interface RMIGatewayRemote extends Remote {
     boolean wasUrlIndexed(String url) throws RemoteException;
 
     List<String> groupResults(List<String> results) throws RemoteException;
+
+    List<String> getMeanResponseTimeByBarrel() throws RemoteException;
 }

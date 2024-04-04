@@ -24,6 +24,7 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayRemote 
     private int linkSearchDepth = 0, linkSearchCount = 0;
     private LinkedBlockingQueue<String> urlQueue;
     private AtomicInteger messageId = new AtomicInteger(0);
+    private Map<IndexStorageBarrel, Long> responseTimes = new HashMap<>();
 
     /**
      * Constructs a new RMIGateway object.
@@ -151,6 +152,7 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayRemote 
      */
     public List<String> searchByTerms(String keywords, IndexStorageBarrel barrel) throws RemoteException {
 
+        long startTime = System.currentTimeMillis();
         List<String> results = new ArrayList<String>();
         Thread searchThread = new Thread(() -> {
             try {
@@ -179,7 +181,9 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayRemote 
         } catch (InterruptedException e) {
             System.out.println("Erro ao aguardar a conclusão da pesquisa: " + e.getMessage());
         }
-
+        long endTime = System.currentTimeMillis();
+        long searchTime = endTime - startTime;
+        responseTimes.put(barrel, searchTime);
         return groupResults(results);
     }
 
@@ -213,6 +217,7 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayRemote 
      */
     public List<String> consult(String url_consulta, IndexStorageBarrel barrel) throws RemoteException {
 
+        long startTime = System.currentTimeMillis();
         List<String> results = new ArrayList<>();
         
         Thread consultThread = new Thread(() -> {
@@ -235,7 +240,9 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayRemote 
         } catch (InterruptedException e) {
             System.out.println("Error while waiting for the query to complete: " + e.getMessage());
         }
-
+        long endTime = System.currentTimeMillis();
+        long consultTime = endTime - startTime;
+        responseTimes.put(barrel, consultTime);
         return results;
     }
 
@@ -248,6 +255,7 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayRemote 
      */
     public List<String> topSearches(IndexStorageBarrel barrel) throws RemoteException {
         
+        long startTime = System.currentTimeMillis();
         ArrayList<String> topTerms = new ArrayList<>();
         
         Thread topSearchesThread = new Thread(() -> {
@@ -270,7 +278,9 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayRemote 
         } catch (InterruptedException e) {
             System.out.println("Error while waiting for the search to complete: " + e.getMessage());
         }
-
+        long endTime = System.currentTimeMillis();
+        long topSearchesTime = endTime - startTime;
+        responseTimes.put(barrel, topSearchesTime);
         return topTerms;
     }
 
@@ -309,19 +319,24 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayRemote 
      * @return The response time in milliseconds.
      * @throws RemoteException If a remote communication-related exception occurs.
      */
-    public long getResponseTime(IndexStorageBarrel barrel) throws RemoteException {
-        long startTime = System.currentTimeMillis();
-        try {
-            barrel.ping();
-        } catch (RemoteException e) {
-            System.err.println("Erro ao obter tempo de resposta: " + e.getMessage());
+    public List<String> getMeanResponseTimeByBarrel() throws RemoteException {
+        long sum = 0;
+        long mean = 0;
+        Map <IndexStorageBarrel,Long> meanResponseTimes = new HashMap<>();
+        for (IndexStorageBarrel barrel : barrels.values()) {
+            for (Long time : responseTimes.values()) {
+                sum += time;
+            }
+            mean = sum / responseTimes.size();
+            meanResponseTimes.put(barrel, mean);
         }
-        long endTime = System.currentTimeMillis();
-
-        long tempoResposta = endTime - startTime;
-
-        return tempoResposta;
+        List<String> responseTimesList = new ArrayList<>();
+        for (Map.Entry<IndexStorageBarrel, Long> entry : meanResponseTimes.entrySet()) {
+            responseTimesList.add(entry.getKey().toString() + " - " + entry.getValue() + "ms");
+        }
+        return responseTimesList;
     }
+
     /**
      * Main method to start the RMIGateway.
      *

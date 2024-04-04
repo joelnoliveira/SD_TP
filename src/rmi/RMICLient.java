@@ -73,7 +73,11 @@ public class RMICLient {
                 for (String b : barrels) {
                     System.out.println(b);
                 }
-                System.out.println("Response time: " + gateway.getResponseTime(gateway.getRandomBarrel()) + "ms");
+                System.out.println("Response time: ");
+                List<String> res3 = gateway.getMeanResponseTimeByBarrel();
+                for (String r : res3) {
+                    System.out.println(r);
+                }
                 break;
             case 5:
                 System.out.println("Exiting");
