@@ -30,7 +30,7 @@ import downloader.URLData;
 
 public class IndexStorageBarrel{
 
-    private int barrelId, multicastBarrelsPort, messageRecoverySleepTime;
+    private int barrelId, multicastBarrelsPort, multicastDownloadersPort, messageRecoverySleepTime;
     private int processedMessages = 0; // The number of messages processed from the downloader
     private int contiguosMessages = 0; // The number of contiguos messages received from the downloaders
     private InetAddress group = null;
@@ -57,20 +57,71 @@ public class IndexStorageBarrel{
     private ObjectOutputStream oos;
     private final Semaphore diskSemaphore = new Semaphore(1);
 
+    public IndexStorageBarrel(){
+        
+        // // Open the file and load the data objects
+        // try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(barrelId + ".storage"))) {
+            
+        //     String str;
+        //     //Read objects from the file
+        //     while ((str = (String) ois.readObject()) != null)saveDiskMessage(str); // Save the data in the ram TODO
+
+        //     // Perform contiguosMessages check
+        //     for (int i = contiguosMessages; i < messagesMap.size(); i++) {
+
+        //         if(messagesMap.get(i) != null)contiguosMessages++;
+        //         else break; // It may have more messages saved but they are not contiguos
+        //     }
+
+        //     // Check if there are missing messages
+
+
+        
+        // } catch (IOException | ClassNotFoundException e) {
+        //     e.printStackTrace();
+        // }
+
+        
+        // try {
+        //     File file = new File("indexStorageBarrel.txt");
+        //     if (!file.exists()) {
+        //         file.createNewFile();
+        //     }
+        //     oos = new ObjectOutputStream(new FileOutputStream(file, true));
+        // } catch (IOException e) {
+        //     e.printStackTrace();
+        // }
+    }
+    
+    private void loadDataFromDisk(int messageId){
+        // TODO allow for load some specific data from the disk, example, when some messages are cleared from the ram, they can be loaded from the disk when needed
+
+    }
+
+    private void saveDataToDisk(String str){
+        // TODO
+    }
 
     private void sender(){
-
-        boolean lastPassed = false;
-        int lastMessageId = -1, messageId;
 
         String data = null;
         try {
             while (true) {
+
                 data = toBeSentMessages.take(); // Pop the data from the toBeSentMessages queue
-                
-                byte [] buffer = data.getBytes();
-                DatagramPacket packet = new DatagramPacket(buffer, buffer.length, group, multicastBarrelsPort);
-                socket.send(packet);
+
+                if(data.startsWith("type2")){ // if the message is a ack directed to a downloader
+                    
+                    byte [] buffer = data.getBytes();
+                    DatagramPacket packet = new DatagramPacket(buffer, buffer.length, group, multicastDownloadersPort);
+                    socket.send(packet);
+
+                }else{ // if messages are directed to the barrels
+
+                    byte [] buffer = data.getBytes();
+                    DatagramPacket packet = new DatagramPacket(buffer, buffer.length, group, multicastBarrelsPort);
+                    socket.send(packet);
+                }
 
                 // print the type of the message and the downloader id
                 System.out.println(LocalDateTime.now() + " : The message with the type " + data.split("\n")[0] + "and the message id " + data.split("\n")[2] + " was sent");
@@ -80,8 +131,6 @@ public class IndexStorageBarrel{
         } catch (IOException e) {
             e.printStackTrace();
         }
-        // 
-        // Send a recover request to the other barrels
     } 
 
     private synchronized void processData(){ // whis one and search should be synchronized
@@ -250,41 +299,6 @@ public class IndexStorageBarrel{
             e.printStackTrace();
         }
     }
-    public IndexStorageBarrel(){
-        
-        // Open the file and load the data objects
-        // try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(barrelId + ".storage"))) {
-            
-            String str;
-            // Read objects from the file
-            // while ((str = (String) ois.readObject()) != null)saveDiskMessage(str); // Save the data in the ram TODO
-
-
-        
-        // } catch (IOException | ClassNotFoundException e) {
-        //     e.printStackTrace();
-        // }
-
-        
-        // try {
-        //     File file = new File("indexStorageBarrel.txt");
-        //     if (!file.exists()) {
-        //         file.createNewFile();
-        //     }
-        //     oos = new ObjectOutputStream(new FileOutputStream(file, true));
-        // } catch (IOException e) {
-        //     e.printStackTrace();
-        // }
-    }
-
-    private void loadDataFromDisk(int messageId){
-        // TODO allow for load some specific data from the disk, example, when some messages are cleared from the ram, they can be loaded from the disk when needed
-
-    }
-    private void saveDataToDisk(String str){
-        // TODO
-    }
-
     
     synchronized String search(int batchNumber, String query){
         return "result";
@@ -324,10 +338,10 @@ public class IndexStorageBarrel{
         
         try{
         Thread.sleep(messageRecoverySleepTime); // wait 5 seconds for the lost messages to arrive
-        if(!messagesMap.containsKey(contiguosMessages)){ // if the message still hasn't arrived
+        if(!messagesMap.containsKey(messageId)){ // if the message still hasn't arrived
 
             // create a recover request
-            String message = "type1\n" + barrelId + "\n" + contiguosMessages;
+            String message = "type1\n" + barrelId + "\n" + messageId;
             toBeSentMessages.put(message); // add the message to the toBeSentMessages queue
             System.out.println(LocalDateTime.now() + " : The recover request for the message with the id " + contiguosMessages + " was added to the toBeSentMessages queue");
         }
@@ -358,7 +372,7 @@ public class IndexStorageBarrel{
 
                 // create a thread to handle it
                 new Thread(() -> {
-                    createRecoverRequest(messageId);
+                    createRecoverRequest(contiguosMessages);
                 }).start();
             }
 
@@ -385,7 +399,7 @@ public class IndexStorageBarrel{
 
     public static void main(String[] args) {
 
-        int multicastDownloadersPort, multticastTTL, maxMulticastBytes;
+        int multticastTTL, maxMulticastBytes;
         String host, registryName, multicastAddress, multicastInterface;
 
         maxMulticastBytes = 0;
@@ -405,7 +419,7 @@ public class IndexStorageBarrel{
             host = prop.getProperty("host");
             registryName = prop.getProperty("registryName");
 
-            multicastDownloadersPort = Integer.parseInt(prop.getProperty("multicastDownloadersPort"));
+            barrel.multicastDownloadersPort = Integer.parseInt(prop.getProperty("multicastDownloadersPort"));
             barrel.multicastBarrelsPort = Integer.parseInt(prop.getProperty("multicastBarrelsPort"));
             multicastAddress = prop.getProperty("multicastAddress");
             multicastInterface = prop.getProperty("multicastInterface");
@@ -426,7 +440,7 @@ public class IndexStorageBarrel{
                 System.out.println(LocalDateTime.now() + " : Multicast socket created!");
 
                 barrel.group = InetAddress.getByName(multicastAddress);
-                socketAddress0 = new InetSocketAddress(barrel.group, multicastDownloadersPort);
+                socketAddress0 = new InetSocketAddress(barrel.group, barrel.multicastDownloadersPort);
                 
                 networkInterface = NetworkInterface.getByName(multicastInterface);
                 barrel.socket.joinGroup(socketAddress0, networkInterface);

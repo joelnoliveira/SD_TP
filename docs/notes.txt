@@ -180,3 +180,8 @@ Considerar verificar os links antes de conectar
 
 -----------------
 Tentar reduzir o número de pedidos de recuperação
+-> Acho que está feito
+
+-------
+Se a última mensagem enviada de um downloader para o barrel for perdida pelo barrel, como foi a última o barrel não vai voltar a pedir a recuperação dessa mensagem enquanto não receber a seguinte
+-> Ok, pode-se é também mandar-se um ack para os downloaders para que eles vejam que pelo menos um barrel recebeu a mensagem

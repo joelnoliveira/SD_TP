@@ -164,22 +164,6 @@ public class Downloader {
                             
                             // Send data to the Index Storage Barrels by RELIABLE MULTICAST
                             
-                            // // Send a message
-                            // String message = "Hello from Downloader";
-                            // byte[] buffer = message.getBytes();
-                            // DatagramPacket packet = new DatagramPacket(buffer, buffer.length, group, multicastBarrelsPort);
-                            // socket.send(packet);
-                            
-                            // while (true) {
-                                
-                            //     // Receive a message
-                            //     buffer = new byte[1000];
-                            //     packet = new DatagramPacket(buffer, buffer.length);
-                            //     socket.receive(packet);
-                            //     String received = new String(packet.getData(), 0, packet.getLength());
-                            //     System.out.println("Received: " + received + " from " + packet.getAddress() + ":" + packet.getPort());
-                            // }
-                            
                             // ------------------------- Scanner -------------------------
                             
                         }   catch (ConnectException e) {
