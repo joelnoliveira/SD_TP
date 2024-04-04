@@ -169,21 +169,14 @@ public IndexStorageBarrel() {
     }));
 }
 
-// initiate a recovery thread to send recover request of the lost messages to other barrels (sender maybe)
-            // new Thread(() -> {
-                // TODO
-            // }).start();
+-------------------
 
-            // initiate a thread that picks the messages from the receivedMessages queue save it on ram and put the message id in the dataToProcess queue
-            new Thread(() -> {
-                barrel.saveData();
-            }).start();
-
-            // initiate a thread to process the data and save 
-            new Thread(() -> {
-                barrel.processData();
-            }).start();
-
-            // initiate a listener thread to receive the messages from the downloaders and other barrels (main thread)
+Os barrels têm no mínimo 4 threads:
+Uma thread sender que fica responsável por recolher da tob para enviar
+Uma thread que 
+-----------
+Considerar verificar os links antes de conectar
 
 
+-----------------
+Tentar reduzir o número de pedidos de recuperação

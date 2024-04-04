@@ -28,12 +28,13 @@ import java.util.concurrent.Semaphore;
 
 import downloader.URLData;
 
-public class IndexStorageBarrel extends Thread{
+public class IndexStorageBarrel{
 
-    private static int barrelId;
+    private int barrelId, multicastBarrelsPort, messageRecoverySleepTime;
     private int processedMessages = 0; // The number of messages processed from the downloader
     private int contiguosMessages = 0; // The number of contiguos messages received from the downloaders
-
+    private InetAddress group = null;
+    private MulticastSocket socket = null;
     // Processed data
     private class URL{
 
@@ -51,23 +52,41 @@ public class IndexStorageBarrel extends Thread{
     // bloking queues
     private LinkedBlockingQueue<String> receivedMessages = new LinkedBlockingQueue<>();
     private LinkedBlockingQueue<Integer> dataToProcess = new LinkedBlockingQueue<>();
-    private LinkedBlockingQueue<String> recoversToRequest = new LinkedBlockingQueue<>();
+    private LinkedBlockingQueue<String> toBeSentMessages = new LinkedBlockingQueue<>();
 
     private ObjectOutputStream oos;
     private final Semaphore diskSemaphore = new Semaphore(1);
 
 
-    public void sender(){
+    private void sender(){
 
-        // Pop the messageId from the recoversToRequest queue
+        boolean lastPassed = false;
+        int lastMessageId = -1, messageId;
+
+        String data = null;
+        try {
+            while (true) {
+                data = toBeSentMessages.take(); // Pop the data from the toBeSentMessages queue
+                
+                byte [] buffer = data.getBytes();
+                DatagramPacket packet = new DatagramPacket(buffer, buffer.length, group, multicastBarrelsPort);
+                socket.send(packet);
+
+                // print the type of the message and the downloader id
+                System.out.println(LocalDateTime.now() + " : The message with the type " + data.split("\n")[0] + "and the message id " + data.split("\n")[2] + " was sent");
+            }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         // 
         // Send a recover request to the other barrels
     } 
 
-    synchronized void processData(){ // whis one and search should be synchronized
+    private synchronized void processData(){ // whis one and search should be synchronized
 
-        int downloaderId, messageId, id, currentPageId;
-        String data = null;
+        int messageId, id, currentPageId;
         URL url = null;
         
         try {
@@ -190,6 +209,23 @@ public class IndexStorageBarrel extends Thread{
         }
     }
     
+    private void sendMissedMessages(int messageId){ // send the missed messages to the barrel that requested them
+        
+        String data = null;
+        // check if the message is in the messagesMap
+        if((data = messagesMap.get(messageId)) != null){ // if it is
+
+            try {
+                toBeSentMessages.put(data); // add the message id to the toBeSentMessages queue
+                System.out.println(LocalDateTime.now() + " : The requested recovery message with the id " + messageId + " was added to the toBeSentMessages queue");
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+        }
+        // else the message is not in the messagesMap so we cannot help
+    }
+
     private void saveData(){
 
         String data = null;
@@ -199,8 +235,16 @@ public class IndexStorageBarrel extends Thread{
             
             while((data = receivedMessages.take()) != null){
 
-                if(data.startsWith("type0")) saveDownloaderMessage(data); // if the data came from an downloader
+                if(data.startsWith("type0")) saveDownloaderMessage(data); // if the data came from an downloader or a barrel
+                else if(data.startsWith("type1")){
 
+                    // check if the message didnt came from this barrel
+                    if(Integer.parseInt(data.split("\n")[1]) != barrelId)sendMissedMessages(Integer.parseInt(data.split("\n")[2]));
+                    else{
+                        System.out.println(LocalDateTime.now() + " : Barrel received its own recovery message");
+                    }
+                }
+                
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -231,10 +275,6 @@ public class IndexStorageBarrel extends Thread{
         // } catch (IOException e) {
         //     e.printStackTrace();
         // }
-    }
-
-    public void run() {
-        System.out.println("IndexStorageBarrel is running");
     }
 
     private void loadDataFromDisk(int messageId){
@@ -280,6 +320,22 @@ public class IndexStorageBarrel extends Thread{
         }
     }
 
+    private void createRecoverRequest(int messageId){
+        
+        try{
+        Thread.sleep(messageRecoverySleepTime); // wait 5 seconds for the lost messages to arrive
+        if(!messagesMap.containsKey(contiguosMessages)){ // if the message still hasn't arrived
+
+            // create a recover request
+            String message = "type1\n" + barrelId + "\n" + contiguosMessages;
+            toBeSentMessages.put(message); // add the message to the toBeSentMessages queue
+            System.out.println(LocalDateTime.now() + " : The recover request for the message with the id " + contiguosMessages + " was added to the toBeSentMessages queue");
+        }
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+    }
+
     private void saveDownloaderMessage(String data){ // save it on the ram
 
         int messageId, downloaderId;
@@ -292,18 +348,18 @@ public class IndexStorageBarrel extends Thread{
 
 
             if(messagesMap.get(messageId) != null){
-                System.out.println("The message from the downloader " + downloaderId + " with the id " + messageId + " was already received");
+                System.out.println(LocalDateTime.now() + " : The message from the downloader " + downloaderId + " with the id " + messageId + " was already received");
                 return; // The message was already received
-                // TODO: Send a message to the downloader to stop sending the same message aka send an ACK
             }
 
-            if(contiguosMessages > messageId){
-                System.out.println("The message(s) sent from downloader" + downloaderId + " before the message with the id " + messageId + " haven't arrived yet"); 
+            if(contiguosMessages < messageId){
+                System.out.println(LocalDateTime.now() + " : The message(s) sent before the message with the id " + contiguosMessages + " haven't arrived yet"); 
                 // Then the message(s) before this one was/were lost or haven't arrived yet
 
-                // start a thread with a timer to wait for the lost messages, if they don't arrive in time,
-                // ask another barrel for the lost messages
-
+                // create a thread to handle it
+                new Thread(() -> {
+                    createRecoverRequest(messageId);
+                }).start();
             }
 
             // whether the previous messages arrived or not, this message will be saved
@@ -328,19 +384,17 @@ public class IndexStorageBarrel extends Thread{
 
 
     public static void main(String[] args) {
-        int multicastDownloadersPort, multicastBarrelsPort, multticastTTL, maxMulticastBytes;
+
+        int multicastDownloadersPort, multticastTTL, maxMulticastBytes;
         String host, registryName, multicastAddress, multicastInterface;
 
-        IndexStorageBarrel barrel = new IndexStorageBarrel();
-
         maxMulticastBytes = 0;
-        InetAddress group = null;
+        IndexStorageBarrel barrel = new IndexStorageBarrel();
         SocketAddress socketAddress0 = null; // Downloaders
-        // SocketAddress socketAddress1 = null; // So barrels can communicate with each other
         NetworkInterface networkInterface = null;
 
         try {
-            barrelId = Integer.parseInt(args[0]);
+            barrel.barrelId = Integer.parseInt(args[0]);
             
             // ----------------- Load the configurations -----------------
 
@@ -348,12 +402,11 @@ public class IndexStorageBarrel extends Thread{
             InputStream input = new FileInputStream(args[1]);
             prop.load(input);
 
-            
             host = prop.getProperty("host");
             registryName = prop.getProperty("registryName");
 
             multicastDownloadersPort = Integer.parseInt(prop.getProperty("multicastDownloadersPort"));
-            multicastBarrelsPort = Integer.parseInt(prop.getProperty("multicastBarrelsPort"));
+            barrel.multicastBarrelsPort = Integer.parseInt(prop.getProperty("multicastBarrelsPort"));
             multicastAddress = prop.getProperty("multicastAddress");
             multicastInterface = prop.getProperty("multicastInterface");
             multticastTTL = Integer.parseInt(prop.getProperty("multicastTTL"));
@@ -361,82 +414,71 @@ public class IndexStorageBarrel extends Thread{
             maxMulticastBytes+= Integer.parseInt(prop.getProperty("maxBytesCitation"));
             maxMulticastBytes+= Integer.parseInt(prop.getProperty("maxBytesTokens"));
             maxMulticastBytes+= Integer.parseInt(prop.getProperty("maxBytesLinks"));
+            barrel.messageRecoverySleepTime = Integer.parseInt(prop.getProperty("messageRecoverySleepTime"));
 
             System.out.println(LocalDateTime.now() + " : Configurations sucessfully loaded!");
 
-            // ----------------- Start the threads -----------------
-
-            // initiate a recovery thread to send recover request of the lost messages to other barrels (sender maybe)
-            // new Thread(() -> {
-                // TODO
-            // }).start();
-
-            // initiate a thread that picks the messages from the receivedMessages queue save it on ram and put the message id in the dataToProcess queue
-            new Thread(() -> {
-                barrel.saveData();
-            }).start();
-
-            // initiate a thread to process the data and save 
-            new Thread(() -> {
-                barrel.processData();
-            }).start();
-
-            // initiate a listener thread to receive the messages from the downloaders and other barrels (main thread)
-
             // ----------------- Multicast -----------------
-
-            MulticastSocket socket = null;
+            
             try { // Create a multicast socket
-                socket = new MulticastSocket(multicastBarrelsPort);
+
+                barrel.socket = new MulticastSocket(barrel.multicastBarrelsPort);
                 System.out.println(LocalDateTime.now() + " : Multicast socket created!");
 
-                group = InetAddress.getByName(multicastAddress);
-                socketAddress0 = new InetSocketAddress(group, multicastDownloadersPort);
-                // socketAddress1 = new InetSocketAddress(group, multicastBarrelsPort); // TODO later so it can communicate with other barrels
+                barrel.group = InetAddress.getByName(multicastAddress);
+                socketAddress0 = new InetSocketAddress(barrel.group, multicastDownloadersPort);
+                
                 networkInterface = NetworkInterface.getByName(multicastInterface);
-                socket.joinGroup(socketAddress0, networkInterface);
-                // socket.joinGroup(socketAddress1, networkInterface);
-                socket.setTimeToLive(multticastTTL);
-
-                // Receive a message from the downloaders
+                barrel.socket.joinGroup(socketAddress0, networkInterface);
+                
+                barrel.socket.setTimeToLive(multticastTTL);
+                
+                // ----------------- Start the threads -----------------
+    
+                // initiate sender thread
+                new Thread(() -> {
+                    barrel.sender();
+                }).start();
+    
+                // initiate a thread that picks the messages from the receivedMessages queue save it on ram and put the message id in the dataToProcess queue
+                new Thread(() -> {
+                    barrel.saveData();
+                }).start();
+    
+                // initiate a thread to process the data and save 
+                new Thread(() -> {
+                    barrel.processData();
+                }).start();
+    
+                // initiate a listener thread to receive the messages from the downloaders and other barrels (main thread)
+                
+                // Receive messages
                 while (true) {
                     
                     byte[] buffer =  new byte[maxMulticastBytes+1000]; // 1000 just to be sure
                     DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
-                    socket.receive(packet);
+                    barrel.socket.receive(packet);
                     
                     String received = new String(packet.getData(), 0, packet.getLength());
                     // System.out.println("Received: " + received);
 
                     barrel.receivedMessages.put(received);
                 }
-                // // Receive a message
-                // byte[]buffer = new byte[1000];
-                // String received = new String(packet.getData(), 0, packet.getLength());
-                // System.out.println("Received: " + received + " from " + packet.getAddress() + ":" + packet.getPort());
-                
-                // // Send a message
-                // String message = "Hello from Barrel";
-                // buffer = message.getBytes();
-                // packet = new DatagramPacket(buffer, buffer.length, group, multicastDownloadersPort);
-                // socket.send(packet);
-
             } catch (IOException e) {
                 System.out.println("Error creating multicast socket: " + e.getMessage());
             } catch (Exception e) {
                 e.printStackTrace();
             } finally {
-                if (socket != null) {
+                if (barrel.socket != null) {
                     try {
-                        socket.leaveGroup(socketAddress0, networkInterface);
-                        // socket.leaveGroup(socketAddress1, networkInterface);
-                        socket.close();
+                        barrel.socket.leaveGroup(socketAddress0, networkInterface);
+                        
+                        barrel.socket.close();
                     } catch (IOException e) {
                         System.out.println("Error closing multicast socket: " + e.getMessage());
                     }
                 }
             }
-
         } catch (Exception e) {
             e.printStackTrace();
         }
