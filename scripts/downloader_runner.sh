@@ -30,8 +30,6 @@ if [ $# -gt 1 ]; then
         echo "The input file does not exist."
         exit 1
     fi
-
-
 fi
 
 # if the user provides an output path, use it

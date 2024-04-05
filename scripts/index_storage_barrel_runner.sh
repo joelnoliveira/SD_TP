@@ -33,12 +33,12 @@ if [ $# -gt 1 ]; then
 fi
 
 # if the user provides an output path, use it
-if [ $# -gt 1 ]; then
+if [ $# -gt 2 ]; then
     output_path=$3
 fi
 
 cd bin
 
-java barrels.IndexStorageBarrel $id ../$input_path > ../$output_path
+java barrels.IndexStorageBarrel $id ../$input_path >> ../$output_path
 
 cd ..

@@ -1,6 +1,7 @@
 package barrels;
 
 import java.io.ByteArrayInputStream;
+import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -8,6 +9,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.OutputStream;
 import java.io.RandomAccessFile;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
@@ -28,11 +30,24 @@ import java.util.concurrent.Semaphore;
 
 import downloader.URLData;
 
+
 public class IndexStorageBarrel{
+    private class AppendableObjectOutputStream extends ObjectOutputStream {
+        public AppendableObjectOutputStream(OutputStream out) throws IOException {
+            super(out);
+        }
+    
+        @Override
+        protected void writeStreamHeader() throws IOException {
+            // do not write a header, but reset
+            reset();
+        }
+    }
 
     private int barrelId, multicastBarrelsPort, multicastDownloadersPort, messageRecoverySleepTime;
     private int processedMessages = 0; // The number of messages processed from the downloader
     private int contiguosMessages = 0; // The number of contiguos messages received from the downloaders
+    private String diskFileFolderPath;
     private InetAddress group = null;
     private MulticastSocket socket = null;
     // Processed data
@@ -57,52 +72,63 @@ public class IndexStorageBarrel{
     private ObjectOutputStream oos;
     private final Semaphore diskSemaphore = new Semaphore(1);
 
-    public IndexStorageBarrel(){
-        
-        // // Open the file and load the data objects
-        // try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(barrelId + ".storage"))) {
-            
-        //     String str;
-        //     //Read objects from the file
-        //     while ((str = (String) ois.readObject()) != null)saveDiskMessage(str); // Save the data in the ram TODO
+    public IndexStorageBarrel(int barrelId){
+        this.barrelId = barrelId;
+        System.out.println(LocalDateTime.now() + " : System is starting up");
+        try {
+            File file = new File(barrelId + ".disk");
+            boolean append = file.exists() && file.length() > 0;
+            if(append){
+                System.out.println(LocalDateTime.now() + " : Datafile found in disk, loading data objects");
+                // Open the file and load the data objects
+                try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file))) {
+                    String str;
+                    //Read objects from the file
+                    while ((str = (String) ois.readObject()) != null)saveDiskMessage(str);
+                } 
+                catch (EOFException e) {
+                    // EOFException is expected when there are no more objects to read
+                }catch (IOException | ClassNotFoundException e) {
+                    e.printStackTrace();
+                }
+            }else {
+                System.out.println(LocalDateTime.now() + " : No datafile found in disk, creating one");
+                file.createNewFile();
+            }
+            this.oos = append ? new AppendableObjectOutputStream(new FileOutputStream(file, true)) : new ObjectOutputStream(new FileOutputStream(file, true));
 
-        //     // Perform contiguosMessages check
-        //     for (int i = contiguosMessages; i < messagesMap.size(); i++) {
-
-        //         if(messagesMap.get(i) != null)contiguosMessages++;
-        //         else break; // It may have more messages saved but they are not contiguos
-        //     }
-
-        //     // Check if there are missing messages
-
-
-        
-        // } catch (IOException | ClassNotFoundException e) {
-        //     e.printStackTrace();
-        // }
-
-        
-        // try {
-        //     File file = new File("indexStorageBarrel.txt");
-        //     if (!file.exists()) {
-        //         file.createNewFile();
-        //     }
-        //     oos = new ObjectOutputStream(new FileOutputStream(file, true));
-        // } catch (IOException e) {
-        //     e.printStackTrace();
-        // }
-    }
-    
-    private void loadDataFromDisk(int messageId){
-        // TODO allow for load some specific data from the disk, example, when some messages are cleared from the ram, they can be loaded from the disk when needed
-
+            Runtime.getRuntime().addShutdownHook(new Thread(() -> {// thread to close the ObjectOutputStream
+                if (oos != null) {
+                    try {
+                        System.out.println(LocalDateTime.now() + " : Shutting down, closing the ObjectOutputStream");
+                        oos.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     private void saveDataToDisk(String str){
-        // TODO
+        
+        try {
+            diskSemaphore.acquire();
+            oos.writeObject(str);
+            oos.flush();
+            diskSemaphore.release();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     private void sender(){
+
+        System.out.println(LocalDateTime.now() + " : Sender thread started");
 
         String data = null;
         try {
@@ -133,7 +159,9 @@ public class IndexStorageBarrel{
         }
     } 
 
-    private synchronized void processData(){ // whis one and search should be synchronized
+    private synchronized void dataprocessor(){ // whis one and search should be synchronized
+
+        System.out.println(LocalDateTime.now() + " : Data processor thread started");
 
         int messageId, id, currentPageId;
         URL url = null;
@@ -275,7 +303,9 @@ public class IndexStorageBarrel{
         // else the message is not in the messagesMap so we cannot help
     }
 
-    private void saveData(){
+    private void messageProcessor(){
+
+        System.out.println(LocalDateTime.now() + " : Message processor thread started");
 
         String data = null;
 
@@ -328,6 +358,7 @@ public class IndexStorageBarrel{
             System.out.println(LocalDateTime.now() + " : The message from the downloader " + downloaderId + " with the id " + messageId + " was saved in ram," + " the number of contiguos messages is " + contiguosMessages);
             
             dataToProcess.put(messageId); // Add the messageId to the queue they can later be processed
+            System.out.println(LocalDateTime.now() + " : the message with the id " + messageId + " was saved in disk");
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -372,7 +403,7 @@ public class IndexStorageBarrel{
 
                 // create a thread to handle it
                 new Thread(() -> {
-                    createRecoverRequest(contiguosMessages);
+                    createRecoverRequest(contiguosMessages); // TODO to many threads may be created, maybe use only a thread and mark sutff with time stamps to see time elapsed
                 }).start();
             }
 
@@ -392,9 +423,12 @@ public class IndexStorageBarrel{
             
             dataToProcess.put(messageId); // Add the messageId to the queue so the main thread can process the data
             
+            saveDataToDisk(data); // save the data in the disk
+
             message = "type2\n" + downloaderId + "\n" + messageId;
             toBeSentMessages.put(message); // add the message to the toBeSentMessages queue
-            // TDOD fazer o donwloader receber o ack
+            // TODO fazer o downloader processar o ack
+            System.out.println(LocalDateTime.now() + " : the message with the id " + messageId + " was saved in disk");
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -408,12 +442,11 @@ public class IndexStorageBarrel{
         String host, registryName, multicastAddress, multicastInterface;
 
         maxMulticastBytes = 0;
-        IndexStorageBarrel barrel = new IndexStorageBarrel();
         SocketAddress socketAddress0 = null; // Downloaders
         NetworkInterface networkInterface = null;
-
+        
         try {
-            barrel.barrelId = Integer.parseInt(args[0]);
+            IndexStorageBarrel barrel = new IndexStorageBarrel(Integer.parseInt(args[0]));
             
             // ----------------- Load the configurations -----------------
 
@@ -434,6 +467,7 @@ public class IndexStorageBarrel{
             maxMulticastBytes+= Integer.parseInt(prop.getProperty("maxBytesTokens"));
             maxMulticastBytes+= Integer.parseInt(prop.getProperty("maxBytesLinks"));
             barrel.messageRecoverySleepTime = Integer.parseInt(prop.getProperty("messageRecoverySleepTime"));
+            barrel.diskFileFolderPath  = prop.getProperty("diskFileFolderPath");
 
             System.out.println(LocalDateTime.now() + " : Configurations sucessfully loaded!");
 
@@ -461,16 +495,18 @@ public class IndexStorageBarrel{
     
                 // initiate a thread that picks the messages from the receivedMessages queue save it on ram and put the message id in the dataToProcess queue
                 new Thread(() -> {
-                    barrel.saveData();
+                    barrel.messageProcessor();
                 }).start();
     
                 // initiate a thread to process the data and save 
                 new Thread(() -> {
-                    barrel.processData();
+                    barrel.dataprocessor();
                 }).start();
     
                 // initiate a listener thread to receive the messages from the downloaders and other barrels (main thread)
                 
+                System.out.println(LocalDateTime.now() + " : Startup finished!");
+
                 // Receive messages
                 while (true) {
                     
