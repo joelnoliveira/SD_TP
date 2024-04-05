@@ -2,10 +2,12 @@ package rmi;
 
 import java.io.FileInputStream;
 import java.io.InputStream;
+import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.Registry;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.server.UnicastRemoteObject;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -14,17 +16,29 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import java.util.Iterator;
 
 import barrels.IndexStorageBarrel;
 
 public class RMIGateway extends UnicastRemoteObject implements RMIGatewayRemote {
-    private Map<String, IndexStorageBarrel> barrels;
+
+    private ExecutorService executorService;
+    private static final long HEARTBEAT_INTERVAL = 60;
+    private static final long TIMEOUT = 15000;
+    private Map<String, IndexStorageBarrel> activeBarrels;
     private int linkSearchDepth = 0, linkSearchCount = 0;
     private LinkedBlockingQueue<String> urlQueue;
     private AtomicInteger messageId = new AtomicInteger(0);
     private Map<IndexStorageBarrel, Long> responseTimes = new HashMap<>();
+
 
     /**
      * Constructs a new RMIGateway object.
@@ -34,7 +48,7 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayRemote 
      */
     public RMIGateway() throws RemoteException {
         urlQueue = new LinkedBlockingQueue<>();
-        barrels = new HashMap<>();
+        activeBarrels = new HashMap<>();
     }
 
 
@@ -54,9 +68,9 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayRemote 
      */
     public IndexStorageBarrel getRandomBarrel() {
         Random rand = new Random();
-        List<String> keys = new ArrayList<String>(barrels.keySet());
+        List<String> keys = new ArrayList<String>(activeBarrels.keySet());
         String randomKey = keys.get(rand.nextInt(keys.size()));
-        return barrels.get(randomKey);
+        return activeBarrels.get(randomKey);
     }
 
     /**
@@ -95,7 +109,7 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayRemote 
      */
     public boolean wasUrlIndexed(String url) throws RemoteException {
         try{
-            for (IndexStorageBarrel barrel : barrels.values()) {
+            for (IndexStorageBarrel barrel : activeBarrels.values()) {
             if (barrel.hasURL(url)) {
                 return true;
             }
@@ -132,13 +146,52 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayRemote 
             IndexStorageBarrel barrel2 = (IndexStorageBarrel) registry.lookup("Barrel2");
            
             //Add barrels to map
-            barrels.put("Barrel1", barrel1);
-            barrels.put("Barrel2", barrel2);
+            activeBarrels.put("Barrel1", barrel1);
+            activeBarrels.put("Barrel2", barrel2);
             
             System.out.println("Connected to barrels");
             
-        } catch (Exception e) {
-            throw new RemoteException("Error connecting to barrels: " + e.getMessage());
+        } catch (RemoteException re) {
+            retryConnection();
+            System.err.println("Error: " + re.getMessage());
+        } catch (NotBoundException nbe) {
+            System.err.println("Error: " + nbe.getMessage());
+        }
+    }
+    /**
+     * Retries to connect to the barrels.
+     */
+    public void retryConnection(){
+        int MAX_RETRIES = 3;
+        int numRetries = 0;
+        boolean connected = false;
+        while (numRetries < MAX_RETRIES && !connected) {
+            try {
+                //Connect to barrels
+            Registry registry = LocateRegistry.getRegistry("localhost", 1098);
+            IndexStorageBarrel barrel1 = (IndexStorageBarrel) registry.lookup("Barrel1");
+            IndexStorageBarrel barrel2 = (IndexStorageBarrel) registry.lookup("Barrel2");
+           
+            //Add barrels to map
+            activeBarrels.put("Barrel1", barrel1);
+            activeBarrels.put("Barrel2", barrel2);
+            
+            System.out.println("Connected to barrels");
+            } catch (RemoteException re) {
+                System.err.println("Error: " + re.getMessage());
+                try {
+                    Thread.sleep(1000); // Wait 1 second before trying again
+                } catch (InterruptedException ex) {
+                    Thread.currentThread().interrupt();
+                }
+                numRetries++;
+            } catch (NotBoundException nbe) {
+            System.err.println("Error: " + nbe.getMessage());
+        }
+    }
+        if (!connected) {
+            System.err.println("Failed to reconnect after " + MAX_RETRIES + " retries. Exiting...");
+            System.exit(1);
         }
     }
 
@@ -294,7 +347,7 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayRemote 
     public List<String> getBarrelsList() throws RemoteException {
         List<String> list = new ArrayList<>();
         try {
-            for (String key : barrels.keySet()) {
+            for (String key : activeBarrels.keySet()) {
                 list.add(key);
             }
         } catch (Exception e) {
@@ -323,7 +376,7 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayRemote 
         long sum = 0;
         long mean = 0;
         Map <IndexStorageBarrel,Long> meanResponseTimes = new HashMap<>();
-        for (IndexStorageBarrel barrel : barrels.values()) {
+        for (IndexStorageBarrel barrel : activeBarrels.values()) {
             for (Long time : responseTimes.values()) {
                 sum += time;
             }
@@ -337,6 +390,53 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayRemote 
         return responseTimesList;
     }
 
+    private void startHeartbeat() {
+        Thread heartThread = new Thread(() -> {
+            while (true) {
+                try{
+                    checkHeartbeat();
+                } catch (RemoteException e) {
+                    System.err.println("Error while checking heartbeat: " + e.getMessage());
+                }
+                try {
+                    Thread.sleep(HEARTBEAT_INTERVAL);
+                } catch (InterruptedException e) {
+                    System.err.println("Error while sleeping: " + e.getMessage());
+                }
+            }
+            });
+            heartThread.start();
+        }
+
+    /**
+     * Checks the heartbeat of the barrels.
+     * If a barrel does not respond within the timeout period, it is removed from the active barrels list.
+     * 
+     * @throws RemoteException If a remote communication-related exception occurs.
+     * 
+     */
+    private void checkHeartbeat() throws RemoteException{
+        List<IndexStorageBarrel> barrelsToRemove = new ArrayList<>();
+        for (IndexStorageBarrel barrel : activeBarrels.values()) {
+            try {
+                long startTime = System.currentTimeMillis();
+                barrel.ping();
+                long endTime = System.currentTimeMillis();
+                long responseTime = endTime - startTime;
+                if (responseTime > TIMEOUT) {
+                    barrelsToRemove.add(barrel);
+                }
+            }catch (RemoteException e) {
+                barrelsToRemove.add(barrel);
+            }
+        }
+        for (String key : activeBarrels.keySet()) {
+            if (barrelsToRemove.contains(activeBarrels.get(key))) {
+                activeBarrels.remove(key);
+            }
+        }
+    }
+
     /**
      * Main method to start the RMIGateway.
      *
@@ -345,7 +445,6 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayRemote 
     public static void main(String args[]) {
         int port;
         String defaultURL, registryName;
-        int tries = 0;
         try {
             // Create RMIGateway instance
             RMIGateway gateway = new RMIGateway();
@@ -361,9 +460,7 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayRemote 
             gateway.linkSearchDepth = Integer.parseInt(prop.getProperty("linkSearchDepth"));
             System.out.println(LocalDateTime.now() + " : Configurations successfully loaded!");
 
-            // Retry to start RMIGateway for 3 attempts
-            while (tries < 3) {
-                try {
+            try {
                     // Creating the registry
                     Registry registry = LocateRegistry.createRegistry(port);
                     registry.rebind(registryName, gateway);
@@ -373,7 +470,6 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayRemote 
                     gateway.addUrl(defaultURL);
                     System.out.println(LocalDateTime.now() + " : Default URL added to the queue.");
 
-                    break; // Exit loop if successful
                 } catch (Exception e) {
                     System.out.println(LocalDateTime.now() + " : RMIGateway failed: " + e);
                     try {
@@ -382,9 +478,7 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayRemote 
                         e1.printStackTrace();
                         Thread.currentThread().interrupt();
                     }
-                    tries++;
                 }
-            }
         } catch (Exception e2) {
             e2.printStackTrace(); // Print stack trace
             return;

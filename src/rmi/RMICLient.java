@@ -53,8 +53,8 @@ public class RMICLient {
             case 3:
                 System.out.println("Enter the URL you want to query: ");
                 // Query the list of pages linking to a specific page
-                String url_consulta = sc.nextLine();
-                List<String> res1 = gateway.consult(url_consulta, gateway.getRandomBarrel());
+                String urlConsult = sc.nextLine();
+                List<String> res1 = gateway.consult(urlConsult, gateway.getRandomBarrel());
                 System.out.println("Query result: ");
                 for (String r : res1) {
                     System.out.println(r);
@@ -145,8 +145,58 @@ public class RMICLient {
             i++;
         }
     }
+    /**
+     * Tenta se reconectar ao registro RMI e realizar novamente as operações necessárias.
+     * Se a reconexão for bem-sucedida, conecta aos barris e cria uma instância do cliente RMICLient.
+     * Se todas as tentativas de reconexão falharem, exibe uma mensagem de erro e encerra a execução.
+     * 
+     * @throws RemoteException         se ocorrer um erro de comunicação remota.
+     * @throws NotBoundException       se o nome especificado não estiver associado a um objeto remoto no registro RMI.
+     * @throws MalformedURLException  se ocorrer um erro ao criar uma URL para o registro RMI.
+     */
+    public static void retryConnection() throws RemoteException, NotBoundException, MalformedURLException {
+        final int MAX_RETRIES = 3;
+        int numRetries = 0;
+        boolean connected = false;
+    
+        while (numRetries < MAX_RETRIES && !connected) {
+            try {
+                // Tentar se reconectar ao registro RMI
+                Registry registry = LocateRegistry.getRegistry("localhost");
+    
+                // Procurar pelo objeto remoto
+                RMIGatewayRemote gateway = (RMIGatewayRemote) registry.lookup("Gateway");
+                System.out.println("Reconnected to Gateway");
 
+                // Conectar aos barris
+                gateway.connect2Barrel();
+        
+                // Criar uma instância de RMIClient
+                RMICLient client = new RMICLient();
 
+                // Iniciar a interface do usuário
+                client.start(gateway);
+                // Conexão bem-sucedida
+                connected = true;
+            } catch (RemoteException | NotBoundException e) {
+                // Falha ao reconectar, esperar um pouco antes de tentar novamente
+                System.err.println("Failed to reconnect. Retrying...");
+                try {
+                    Thread.sleep(1000); // Esperar 1 segundo antes de tentar novamente
+                } catch (InterruptedException ex) {
+                    Thread.currentThread().interrupt();
+                }
+                numRetries++;
+            }
+        }
+    
+        if (!connected) {
+            // Todas as tentativas de reconexão falharam
+            System.err.println("Failed to reconnect after " + MAX_RETRIES + " retries. Exiting...");
+            System.exit(1);
+        }
+    }
+    
     /**
      * The main method to start the RMI client.
      * Connects to the RMI registry, looks up the remote gateway object,
@@ -160,20 +210,25 @@ public class RMICLient {
      */
     public static void main(String[] args) throws AccessException, RemoteException, NotBoundException, MalformedURLException {
         // Connect to the RMI registry
-        Registry registry = LocateRegistry.getRegistry("localhost");
+        try{
+            Registry registry = LocateRegistry.getRegistry("localhost");
 
-        // Look up the remote gateway object
-        RMIGatewayRemote gateway = (RMIGatewayRemote) registry.lookup("Gateway");
-        System.out.println("Gateway connected");
-
-        // Connect to barrels
-        gateway.connect2Barrel();
-
-        // Create an instance of RMIClient
-        RMICLient client = new RMICLient();
-
-        // Start the user interface
-        client.start(gateway);
+            // Look up the remote gateway object
+            RMIGatewayRemote gateway = (RMIGatewayRemote) registry.lookup("Gateway");
+            System.out.println("Gateway connected");
+    
+            // Connect to barrels
+            gateway.connect2Barrel();
+    
+            // Create an instance of RMIClient
+            RMICLient client = new RMICLient();
+    
+            // Start the user interface
+            client.start(gateway);
+        } catch (RemoteException e) {
+            retryConnection();
+            System.out.println("Error: " + e.getMessage());
+        }
     }
 }
 
