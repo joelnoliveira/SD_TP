@@ -281,48 +281,63 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayRemote 
                 int page = i / 10 + 1;
                 groupedResults.add("\n-------- Page " + page + " --------\n");
             }
+            // Add the result to the current page
             groupedResults.add(result);
             i++;
         }
+        // Return the grouped results
         return groupedResults;
     }
 
     /**
      * Retrieves a list of pages linking to the specified URL from the given barrel.
      *
-     * @param url_consulta The URL to query.
+     * @param urlConsulta The URL to query.
      * @param barrel The IndexStorageBarrel to query.
      * @return A list of pages linking to the specified URL.
      * @throws RemoteException If a remote communication-related exception occurs.
      */
-    public List<String> consult(String url_consulta, IndexStorageBarrel barrel) throws RemoteException {
-
+    public List<String> consult(String urlConsult, IndexStorageBarrel barrel) throws RemoteException {
+        // Get the start time of the query
         long startTime = System.currentTimeMillis();
+        // Initialize a list to store the query results
         List<String> results = new ArrayList<>();
-        
+        // Create a new thread to perform the query
         Thread consultThread = new Thread(() -> {
             try {
-                List<String> urlsResults = barrel.getPagesThatLinksTo(url_consulta);
+                // Get the list of pages that link to the specified URL
+                List<String> urlsResults = barrel.getPagesThatLinksTo(urlConsult);
+                // Check if the list of URLs is empty
                 if (urlsResults.isEmpty()) {
+                    // Add a message to the results list if no results were found
                     results.add("No results found");
                 } else {
+                    // Add the list of URLs to the results list
                     results.addAll(urlsResults);
                 }
+
             } catch (RemoteException e) {
+                // Threat remote communication exceptions while querying
                 System.err.println("Error while querying: " + e.getMessage());
             }
         });
-        
+        // Start the query thread
         consultThread.start();
 
         try {
+            // Wait for the query to complete
             consultThread.join();
         } catch (InterruptedException e) {
+            // Handle exceptions while waiting for the query to complete
             System.out.println("Error while waiting for the query to complete: " + e.getMessage());
         }
+        // Get the end time of the query
         long endTime = System.currentTimeMillis();
+        // Calculate the query time
         long consultTime = endTime - startTime;
+        // Store the response time for the barrel
         responseTimes.put(barrel, consultTime);
+        // Return the query results
         return results;
     }
 
@@ -334,16 +349,20 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayRemote 
      * @throws RemoteException If a remote communication-related exception occurs.
      */
     public List<String> topSearches(IndexStorageBarrel barrel) throws RemoteException {
-        
+        // Get the start time of the search
         long startTime = System.currentTimeMillis();
         ArrayList<String> topTerms = new ArrayList<>();
-        
+        // Create a new thread to retrieve the top searched terms
         Thread topSearchesThread = new Thread(() -> {
             try {
+                // Get the top searched terms from the barrel
                 ArrayList<String> terms = barrel.getMostSearchedTerms(10);
+                // Check if the list of terms is empty
                 if (terms.isEmpty()) {
+                    // Add a message to the top terms list if no terms were found
                     topTerms.add("No searched terms found");
                 } else {
+                    // Add the list of terms to the top terms list
                     topTerms.addAll(terms);
                 }
             } catch (RemoteException e) {
@@ -360,6 +379,7 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayRemote 
         }
         long endTime = System.currentTimeMillis();
         long topSearchesTime = endTime - startTime;
+        // Store the response time for the barrel
         responseTimes.put(barrel, topSearchesTime);
         return topTerms;
     }
@@ -400,20 +420,28 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayRemote 
      * @throws RemoteException If a remote communication-related exception occurs.
      */
     public List<String> getMeanResponseTimeByBarrel() throws RemoteException {
+        // Calculate the mean response time for each barrel
         long sum = 0;
         long mean = 0;
+        // Create a map to store the mean response times for each barrel
         Map <IndexStorageBarrel,Long> meanResponseTimes = new HashMap<>();
         for (IndexStorageBarrel barrel : activeBarrels.values()) {
+            // Calculate the mean response time for each barrel
             for (Long time : responseTimes.values()) {
                 sum += time;
             }
             mean = sum / responseTimes.size();
+            // Store the mean response time for the barrel
             meanResponseTimes.put(barrel, mean);
         }
+        // Create a list to store the mean response times for each barrel
         List<String> responseTimesList = new ArrayList<>();
+        // Add the mean response times to the list
         for (Map.Entry<IndexStorageBarrel, Long> entry : meanResponseTimes.entrySet()) {
+            // Add the mean response time to the list
             responseTimesList.add(entry.getKey().toString() + " - " + entry.getValue() + "ms");
         }
+        // Return the list of mean response times
         return responseTimesList;
     }
 
