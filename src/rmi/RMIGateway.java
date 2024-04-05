@@ -196,47 +196,73 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayRemote 
     }
 
     /**
-     * Searches for web pages containing the specified keywords in the given barrel.
-     *
-     * @param keywords The keywords to search for.
-     * @param barrel The IndexStorageBarrel to search in.
-     * @return A list of search results containing page titles, URLs, and short quotes.
-     * @throws RemoteException If a remote communication-related exception occurs.
+     * Realiza uma pesquisa assíncrona nos barris de armazenamento de índice por termos-chave e retorna os resultados.
+     * 
+     * @param keywords As palavras-chave usadas na pesquisa.
+     * @param barrel O barril de armazenamento de índice onde a pesquisa será realizada.
+     * @return Uma lista de strings contendo os resultados da pesquisa.
+     * @throws RemoteException Se ocorrer um problema de comunicação remota.
      */
     public List<String> searchByTerms(String keywords, IndexStorageBarrel barrel) throws RemoteException {
-
+        // Get the start time of the search
         long startTime = System.currentTimeMillis();
+        
+        // Initialize a list to store the search results
         List<String> results = new ArrayList<String>();
+        
+        // Create a new thread to perform the search
         Thread searchThread = new Thread(() -> {
             try {
+                // Get the URLs from the barrel by the given keywords
                 HashSet<String> urls = barrel.getURLsByTerms(keywords);
+                
+                // Verifica se a lista de URLs é nula
                 if (urls == null) {
-                    results.add("Não foram encontrados resultados para a pesquisa");
+                    // Add a message to the results list if no results were found
+                    results.add("No results found");
                 } else {
+                    // For each URL in the list
                     for (String url : urls) {
                         try {
-                            results.add(barrel.getPageTitle(url) + " - " + url + "\n" + barrel.getShortQuote(url) + "\n");
+                            // Get the page title and short quote for the URL
+                            String pageTitle = barrel.getPageTitle(url);
+                            String shortQuote = barrel.getShortQuote(url);
+                            // Add the page title, URL, and short quote to the results list
+                            results.add(pageTitle + " - " + url + "\n" + shortQuote + "\n");
                         } catch (RemoteException e) {
-                            System.err.println("Erro ao obter título ou citação curta: " + e.getMessage());
+                            // Threat remote communication exceptions while getting title or short quote
+                            System.err.println("Error in obtaining short quote and/or title: " + e.getMessage());
                             e.printStackTrace();
                         }
                     }
                 }
             } catch (RemoteException e) {
-                System.err.println("Erro ao pesquisar: " + e.getMessage());
+                // Threat remote communication exceptions while searching
+                System.err.println("Error getting the search: " + e.getMessage());
             }
         });
 
+        // Start the search thread
         searchThread.start();
 
         try {
+            // Wait for the search to complete
             searchThread.join();
         } catch (InterruptedException e) {
-            System.out.println("Erro ao aguardar a conclusão da pesquisa: " + e.getMessage());
+            // Handle exceptions while waiting for the search to complete
+            System.out.println("Error getting the search: " + e.getMessage());
         }
+        
+        // Get the end time of the search
         long endTime = System.currentTimeMillis();
+        
+        // Calculate the search time
         long searchTime = endTime - startTime;
+        
+        // Store the response time for the barrel
         responseTimes.put(barrel, searchTime);
+        
+        // Return the search results
         return groupResults(results);
     }
 
@@ -250,6 +276,7 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayRemote 
         int i = 0;
         List<String> groupedResults = new ArrayList<>();
         for (String result : results) {
+            // Add a new page header every 10 results
             if (i % 10 == 0) {
                 int page = i / 10 + 1;
                 groupedResults.add("\n-------- Page " + page + " --------\n");
