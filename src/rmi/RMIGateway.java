@@ -8,17 +8,23 @@ import java.rmi.registry.Registry;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.server.UnicastRemoteObject;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.InputMismatchException;
+import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import barrels.RMIBarrelsInterface;
 
-public class RMIGateway extends UnicastRemoteObject implements RMIGatewayRemote {
+
+public class RMIGateway extends UnicastRemoteObject implements RMIGatewayDownloadersInterface, RMIGatewayBarrelsInterface {
 
     private int linkSearchDepth = 0, linkSearchCount = 0;
     private AtomicInteger messageId = new AtomicInteger(0);
     private LinkedBlockingQueue<String> urlQueue;
+    private List<RMIBarrelsInterface> barrels = new ArrayList<>();
+
 
     public RMIGateway() throws RemoteException {
         urlQueue = new LinkedBlockingQueue<>();
@@ -49,10 +55,14 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayRemote 
         return messageId.getAndIncrement(); // This method is atomic
     }
 
+    public void subscribe(RMIBarrelsInterface barrel) throws RemoteException{
+        barrels.add(barrel);
+        barrel.sayHI();
+    }
     public static void main(String args[]) {
 
-        int port;
-        String defaultURL, registryName;
+        int gatewayDownloadersPort, gatewayBarrelsPort, gatewayClientsPort;
+        String defaultURL, gatewayDownloadersName, gatewayBarrelsName, gatewayClientsName;
 
         try {
             RMIGateway gateway = new RMIGateway();
@@ -61,17 +71,23 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayRemote 
             InputStream input = new FileInputStream(args[0]);
             prop.load(input);
 
-            port = Integer.parseInt(prop.getProperty("port"));
+            gatewayDownloadersPort = Integer.parseInt(prop.getProperty("gatewayDownloadersPort"));
+            gatewayDownloadersName = prop.getProperty("gatewayDownloadersName");
+            gatewayBarrelsPort = Integer.parseInt(prop.getProperty("gatewayBarrelsPort"));
+            gatewayBarrelsName = prop.getProperty("gatewayBarrelsName");
+            gatewayClientsPort = Integer.parseInt(prop.getProperty("gatewayClientsPort"));
+            gatewayClientsName = prop.getProperty("gatewayClientsName");
+
             defaultURL = prop.getProperty("defaultURL");
-            registryName = prop.getProperty("registryName");
             gateway.linkSearchDepth = Integer.parseInt(prop.getProperty("linkSearchDepth"));
             System.out.println(LocalDateTime.now() + " : Configurations sucessfully loaded!");
             
             try {
     
-                // Creating the registry
-                Registry registry = LocateRegistry.createRegistry(port);
-                registry.rebind(registryName, gateway);
+                // Creating the registries
+                LocateRegistry.createRegistry(gatewayDownloadersPort).rebind(gatewayDownloadersName, gateway); // So downloaders can acess the urlQueue and associated methods
+                LocateRegistry.createRegistry(gatewayBarrelsPort).rebind(gatewayBarrelsName, gateway);
+                LocateRegistry.createRegistry(gatewayClientsPort).rebind(gatewayClientsName, gateway);
                 System.out.println(LocalDateTime.now() + " : RMIGateway is ready.");
 
                 if(defaultURL.length()>0){

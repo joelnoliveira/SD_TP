@@ -17,6 +17,9 @@ import java.net.InetSocketAddress;
 import java.net.MulticastSocket;
 import java.net.NetworkInterface;
 import java.net.SocketAddress;
+import java.rmi.Naming;
+import java.rmi.RemoteException;
+import java.rmi.server.UnicastRemoteObject;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -29,10 +32,12 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.Semaphore;
 
 import downloader.URLData;
+import rmi.RMIGatewayBarrelsInterface;
+
 import java.util.HashSet;
 import java.util.concurrent.LinkedBlockingQueue;
 
-public class IndexStorageBarrel{
+public class IndexStorageBarrel extends UnicastRemoteObject implements RMIBarrelsInterface{
     private class AppendableObjectOutputStream extends ObjectOutputStream {
         public AppendableObjectOutputStream(OutputStream out) throws IOException {
             super(out);
@@ -82,7 +87,11 @@ public class IndexStorageBarrel{
     private ObjectOutputStream oos;
     private final Semaphore diskSemaphore = new Semaphore(1);
 
-    public IndexStorageBarrel(int barrelId){
+    public void sayHI() throws RemoteException{
+        System.out.println("HI");
+    }
+
+    public IndexStorageBarrel(int barrelId) throws RemoteException {
         this.barrelId = barrelId;
         System.out.println(LocalDateTime.now() + " : System is starting up");
         try {
@@ -488,7 +497,7 @@ public class IndexStorageBarrel{
     public static void main(String[] args) {
 
         int multticastTTL, maxMulticastBytes;
-        String host, registryName, multicastAddress, multicastInterface;
+        String registryName, multicastAddress, multicastInterface;
 
         maxMulticastBytes = 0;
         SocketAddress socketAddress0 = null; // Downloaders
@@ -503,7 +512,6 @@ public class IndexStorageBarrel{
             InputStream input = new FileInputStream(args[1]);
             prop.load(input);
 
-            host = prop.getProperty("host");
             registryName = prop.getProperty("registryName");
 
             barrel.multicastDownloadersPort = Integer.parseInt(prop.getProperty("multicastDownloadersPort"));
@@ -520,9 +528,11 @@ public class IndexStorageBarrel{
 
             System.out.println(LocalDateTime.now() + " : Configurations sucessfully loaded!");
 
-            // ----------------- Multicast -----------------
+            // ----------------- Multicast ----------------- and registry
             
             try { // Create a multicast socket
+                RMIGatewayBarrelsInterface gateway = (RMIGatewayBarrelsInterface) Naming.lookup(registryName);
+                gateway.subscribe(barrel);
 
                 barrel.socket = new MulticastSocket(barrel.multicastBarrelsPort);
                 System.out.println(LocalDateTime.now() + " : Multicast socket created!");

@@ -20,8 +20,9 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.rmi.registry.Registry;
 import java.time.LocalDateTime;
 import java.net.ConnectException;
+import java.rmi.Naming;
 import java.rmi.registry.LocateRegistry;
-import rmi.RMIGatewayRemote;
+import rmi.RMIGatewayDownloadersInterface;
 
 import java.net.DatagramPacket;
 import java.net.InetAddress;
@@ -137,11 +138,11 @@ public class Downloader {
 
                 try {// Create the registry
 
-                    Registry registry = LocateRegistry.getRegistry(host);
+                    // Registry registry = LocateRegistry.getRegistry(host);
                     System.out.println(LocalDateTime.now() + " : Registry found!");
         
                     // Look up the registry for the remote object
-                    RMIGatewayRemote gateway = (RMIGatewayRemote) registry.lookup(registryName);
+                    RMIGatewayDownloadersInterface gateway = (RMIGatewayDownloadersInterface) Naming.lookup(registryName);
                     System.out.println(LocalDateTime.now() + " : Gateway object retrieved!");
 
                     // -------- Threads --------
