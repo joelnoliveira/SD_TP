@@ -14,7 +14,7 @@ public interface RMIGatewayRemote extends Remote {
 
     List<String> consult(String url_consulta, IndexStorageBarrel barrel) throws RemoteException;
 
-    List<String> topSearches(IndexStorageBarrel barrel) throws RemoteException;
+    List<String> topSearches() throws RemoteException;
 
     void connect2Barrel() throws RemoteException;
 
@@ -37,4 +37,6 @@ public interface RMIGatewayRemote extends Remote {
     List<String> groupResults(List<String> results) throws RemoteException;
 
     List<String> getMeanResponseTimeByBarrel() throws RemoteException;
+
+    void mergeMap(Map<String, Integer> map, Map<String, Integer> map2) throws RemoteException;
 }

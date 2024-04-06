@@ -63,7 +63,7 @@ public class RMICLient {
             case 4:
                 // Query real-time updated administration page
                 System.out.println("Real-time updated administration page");
-                List<String> res2 = gateway.topSearches(gateway.getRandomBarrel());
+                List<String> res2 = gateway.topSearches();
                 System.out.println("Most searched terms: ");
                 for (String r : res2) {
                     System.out.println(r);

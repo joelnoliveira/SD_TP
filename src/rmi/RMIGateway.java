@@ -2,6 +2,7 @@ package rmi;
 
 import java.io.FileInputStream;
 import java.io.InputStream;
+import java.lang.reflect.Array;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.Registry;
@@ -259,8 +260,14 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayRemote 
         // Calculate the search time
         long searchTime = endTime - startTime;
         
+        long mean = responseTimes.get(barrel);
+        if (mean == 0) {
+            mean = searchTime;
+        } else {
+            mean = (mean + searchTime) / 2;
+        }
         // Store the response time for the barrel
-        responseTimes.put(barrel, searchTime);
+        responseTimes.put(barrel, mean);
         
         // Return the search results
         return groupResults(results);
@@ -335,8 +342,15 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayRemote 
         long endTime = System.currentTimeMillis();
         // Calculate the query time
         long consultTime = endTime - startTime;
+
+        long mean = responseTimes.get(barrel);
+        if (mean == 0) {
+            mean = consultTime;
+        } else {
+            mean = (mean + consultTime) / 2;
+        }
         // Store the response time for the barrel
-        responseTimes.put(barrel, consultTime);
+        responseTimes.put(barrel, mean);
         // Return the query results
         return results;
     }
@@ -348,28 +362,29 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayRemote 
      * @return A list of the top searched terms.
      * @throws RemoteException If a remote communication-related exception occurs.
      */
-    public List<String> topSearches(IndexStorageBarrel barrel) throws RemoteException {
-        // Get the start time of the search
-        long startTime = System.currentTimeMillis();
+    public List<String> topSearches() throws RemoteException {
+        Map<String, Integer> mergedTerms = new HashMap<>();
         ArrayList<String> topTerms = new ArrayList<>();
         // Create a new thread to retrieve the top searched terms
         Thread topSearchesThread = new Thread(() -> {
-            try {
-                // Get the top searched terms from the barrel
-                ArrayList<String> terms = barrel.getMostSearchedTerms(10);
-                // Check if the list of terms is empty
-                if (terms.isEmpty()) {
-                    // Add a message to the top terms list if no terms were found
-                    topTerms.add("No searched terms found");
-                } else {
-                    // Add the list of terms to the top terms list
-                    topTerms.addAll(terms);
-                }
-            } catch (RemoteException e) {
-                System.err.println("Error while retrieving top searched terms: " + e.getMessage());
+            for (IndexStorageBarrel barrel : activeBarrels.values()) {
+                Map<String, Integer> terms = barrel.getSearchedTerms();
+                mergeMap(mergedTerms, terms);
+                System.out.println("Merged terms: " + mergedTerms);
+            }
+            List<Map.Entry<String, Integer>> sortedEntries = new ArrayList<>(mergedTerms.entrySet());
+            sortedEntries.sort(Map.Entry.<String, Integer>comparingByValue().reversed());
+
+            List<Map.Entry<String, Integer>> topEntries = sortedEntries.subList(0, Math.min(10, sortedEntries.size()));
+
+            for (Map.Entry<String, Integer> entry : topEntries) {
+                topTerms.add(entry.getKey() + " - " + entry.getValue());
+            }
+            if (topTerms.isEmpty()) {
+                topTerms.add("No search terms found");
             }
         });
-        
+        // Start the thread to retrieve the top searched terms
         topSearchesThread.start();
 
         try {
@@ -377,13 +392,16 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayRemote 
         } catch (InterruptedException e) {
             System.out.println("Error while waiting for the search to complete: " + e.getMessage());
         }
-        long endTime = System.currentTimeMillis();
-        long topSearchesTime = endTime - startTime;
-        // Store the response time for the barrel
-        responseTimes.put(barrel, topSearchesTime);
         return topTerms;
     }
 
+    public void mergeMap(Map<String, Integer> map1, Map<String, Integer> map2) {
+        for (Map.Entry<String, Integer> entry : map2.entrySet()) {
+            String termo = entry.getKey();
+            int contador = entry.getValue();
+            map1.put(termo, map1.getOrDefault(termo, 0) + contador);
+        }
+    }
 
     /**
      * Retrieves a list of barrels available in the system.
@@ -420,28 +438,12 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayRemote 
      * @throws RemoteException If a remote communication-related exception occurs.
      */
     public List<String> getMeanResponseTimeByBarrel() throws RemoteException {
-        // Calculate the mean response time for each barrel
-        long sum = 0;
-        long mean = 0;
-        // Create a map to store the mean response times for each barrel
-        Map <IndexStorageBarrel,Long> meanResponseTimes = new HashMap<>();
-        for (IndexStorageBarrel barrel : activeBarrels.values()) {
-            // Calculate the mean response time for each barrel
-            for (Long time : responseTimes.values()) {
-                sum += time;
-            }
-            mean = sum / responseTimes.size();
-            // Store the mean response time for the barrel
-            meanResponseTimes.put(barrel, mean);
-        }
-        // Create a list to store the mean response times for each barrel
         List<String> responseTimesList = new ArrayList<>();
-        // Add the mean response times to the list
-        for (Map.Entry<IndexStorageBarrel, Long> entry : meanResponseTimes.entrySet()) {
-            // Add the mean response time to the list
-            responseTimesList.add(entry.getKey().toString() + " - " + entry.getValue() + "ms");
+        for (IndexStorageBarrel barrel : activeBarrels.values()) {
+            long times = responseTimes.get(barrel);
+            String barrelName = barrel.getName();
+            responseTimesList.add(barrelName + " - " + times + "ms");
         }
-        // Return the list of mean response times
         return responseTimesList;
     }
 
