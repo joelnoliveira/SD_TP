@@ -54,8 +54,8 @@ public class IndexStorageBarrel{
     
     private String fromDownloaderType = "type0"; // The type of the message that comes from the downloaders
     private String toDownloaderType = "type1"; // The type of the message that goes to the downloaders (ACKS)
-    private String toBarrelType = "type2"; // The type of the message that goes to the barrels (Recovery requests)
-    private String fromBarrelType = "type3"; // The type of the message that comes from the barrels (recovered messages)
+    private String recoveryType = "type2"; // The type of the message that goes to the barrels (Recovery requests)
+    private String recoverdType = "type3"; // The type of the message that comes from the barrels (recovered messages)
     
     private InetAddress group = null;
     private MulticastSocket socket = null;
@@ -146,7 +146,7 @@ public class IndexStorageBarrel{
 
                 data = toBeSentMessages.take(); // Pop the data from the toBeSentMessages queue
 
-                if(data.startsWith("type2")){ // if the message is a ack directed to a downloader
+                if(data.startsWith(toDownloaderType)){ // if the message is a ack directed to a downloader
                     
                     byte [] buffer = data.getBytes();
                     DatagramPacket packet = new DatagramPacket(buffer, buffer.length, group, multicastDownloadersPort);
@@ -160,7 +160,7 @@ public class IndexStorageBarrel{
                 }
 
                 // print the type of the message and the downloader id
-                System.out.println(LocalDateTime.now() + " : The message with the type " + data.split("\n")[0] + "and the message id " + data.split("\n")[2] + " was sent");
+                System.out.println(LocalDateTime.now() + " : The message with the type " + data.split("\n")[0] + " and the message id " + data.split("\n")[2] + " was sent");
             }
         } catch (InterruptedException e) {
             e.printStackTrace();
@@ -324,8 +324,8 @@ public class IndexStorageBarrel{
             
             while((data = receivedMessages.take()) != null){
 
-                if(data.startsWith("type0")) saveDownloaderMessage(data); // if the data came from an downloader or a barrel
-                else if(data.startsWith("type1")){
+                if(data.startsWith(fromDownloaderType)) saveDownloaderMessage(data); // if the data came from an downloader or a barrel
+                else if(data.startsWith(recoveryType)){
 
                     // check if the message didnt came from this barrel
                     if(Integer.parseInt(data.split("\n")[1]) != barrelId)sendMissedMessages(Integer.parseInt(data.split("\n")[2]));
@@ -399,7 +399,7 @@ public class IndexStorageBarrel{
                     if((timeElapsed = (System.currentTimeMillis() - timeStamp))/100 >= messageRecoverySleepTime/100){ // if the waiting time has passed
         
                         // create a recover request
-                        String message = "type1\n" + barrelId + "\n" + messageId;
+                        String message = recoveryType + "\n" + barrelId + "\n" + messageId;
                         toBeSentMessages.put(message); // add the message to the toBeSentMessages queue
                         System.out.println(LocalDateTime.now() + " : Recovery Timer expired, the recover request for the message with the id " + messageId + " was added to the toBeSentMessages queue");
 
@@ -414,7 +414,7 @@ public class IndexStorageBarrel{
                         if(!messagesMap.containsKey(messageId)){ // if the message still hasn't arrived
         
                             // create a recover request
-                            String message = "type1\n" + barrelId + "\n" + messageId;
+                            String message = recoveryType + "\n" + barrelId + "\n" + messageId;
                             toBeSentMessages.put(message); // add the message to the toBeSentMessages queue
                             System.out.println(LocalDateTime.now() + " : Recovery Timer expired, the recover request for the message with the id " + messageId + " was added to the toBeSentMessages queue");
 
@@ -474,7 +474,7 @@ public class IndexStorageBarrel{
             
             saveDataToDisk(data); // save the data in the disk
 
-            message = "type2\n" + downloaderId + "\n" + messageId;
+            message = toDownloaderType + "\n" + downloaderId + "\n" + messageId;
             toBeSentMessages.put(message); // add the message to the toBeSentMessages queue
             // TODO fazer o downloader processar o ack
             System.out.println(LocalDateTime.now() + " : the message with the id " + messageId + " was saved in disk");

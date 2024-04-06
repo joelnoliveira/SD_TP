@@ -192,3 +192,9 @@ Se a última mensagem enviada de um downloader para o barrel for perdida pelo ba
 Talvez quando se vir que a mensagem recebida tem maior Id do que o numero de mensagens continuas, mandar logo o pedido até à última mensagem recebida com maior id mesmo que não seja contínua, mas talvez haja problemas com excesso de threads visto que é usado uma thread para cada mensagem perdida.
 
 ->Existe uma queue para as mensagens perdidas em que cada elemento dessa queue contem uma string com o time stamp em que o elemento foi posto dentro dessa queue e o id da mensagem falta, quando um elemento for retirado dessa queue,..
+
+-------
+Talvez não mandar ack em mensagens que tenham sido recebidas por barrels em vez de downloaders
+
+------
+Considerar quando um barrel iniciar e não tiver nada em disco mandar um pedido aos outros para saber qual foi a maior ID mensagem recebida por cada um, para depois lhes ir pedindo a mensagens
