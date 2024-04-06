@@ -18,12 +18,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 import barrels.RMIBarrelsInterface;
 
 
-public class RMIGateway extends UnicastRemoteObject implements RMIGatewayDownloadersInterface, RMIGatewayBarrelsInterface {
+public class RMIGateway extends UnicastRemoteObject implements RMIGatewayDownloadersInterface, RMIGatewayBarrelsInterface, RMIGatewayClientsInterface {
 
     private int linkSearchDepth = 0, linkSearchCount = 0;
     private AtomicInteger messageId = new AtomicInteger(0);
     private LinkedBlockingQueue<String> urlQueue;
-    private List<RMIBarrelsInterface> barrels = new ArrayList<>();
+    private List<RMIBarrelsInterface> barrels = new ArrayList<>(); // TODO consider use hasmap instead of list
+    private List<RMIClientsInterface> clients = new ArrayList<>(); // consider use hasmap instead of list
 
 
     public RMIGateway() throws RemoteException {
@@ -55,10 +56,16 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayDownloa
         return messageId.getAndIncrement(); // This method is atomic
     }
 
-    public void subscribe(RMIBarrelsInterface barrel) throws RemoteException{
+    public void barrelSubscribe(RMIBarrelsInterface barrel) throws RemoteException{
         barrels.add(barrel);
         barrel.sayHI();
     }
+
+    public void clientSubscribe(RMIClientsInterface client) throws RemoteException {
+        clients.add(client);
+        client.notify("You are now subscribed to the gateway.");
+    }
+    
     public static void main(String args[]) {
 
         int gatewayDownloadersPort, gatewayBarrelsPort, gatewayClientsPort;
