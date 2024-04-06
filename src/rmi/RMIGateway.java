@@ -37,6 +37,12 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayDownloa
             // This method should be used inside the addUrl method, in case the URL is already in the queue or in the barrels, then there is no need to add it again
     // }
 
+    public synchronized void clientAddIndexerUrl(String url) throws InterruptedException {
+        
+        linkSearchCount = 0; // Reset the linkSearchCount, since the client is adding a new URL to be recursively indexed
+        urlQueue.put(url);
+    }
+
     public synchronized void addUrl(String url) throws InterruptedException { 
         // synchronized is used to guarantee that the add url and checking if the URL is already there are atomic operations
         

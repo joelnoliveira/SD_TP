@@ -8,7 +8,7 @@ fi
 javac -d bin src/rmi/RMIGateway.java src/rmi/RMIGatewayDownloadersInterface.java src/rmi/RMIGatewayBarrelsInterface.java src/barrels/RMIBarrelsInterface.java src/rmi/RMIGatewayClientsInterface.java src/rmi/RMIClientsInterface.java
 
 # Compile the Downloader
-javac -d bin -cp .:bin:lib/jars/jsoup-1.17.2.jar src/downloader/Downloader.java src/downloader/URLData.java
+javac -d bin -cp .:bin:lib/jars/jsoup-1.17.2.jar src/downloader/Downloader.java src/downloader/URLData.java src/rmi/RMIGatewayDownloadersInterface.java
 
 # Compile the IndexStorageBarrel
 javac -d bin src/barrels/IndexStorageBarrel.java src/downloader/URLData.java src/barrels/RMIBarrelsInterface.java src/rmi/RMIGatewayBarrelsInterface.java
