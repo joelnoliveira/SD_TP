@@ -29,7 +29,8 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.Semaphore;
 
 import downloader.URLData;
-
+import java.util.HashSet;
+import java.util.concurrent.LinkedBlockingQueue;
 
 public class IndexStorageBarrel{
     private class AppendableObjectOutputStream extends ObjectOutputStream {
@@ -44,10 +45,18 @@ public class IndexStorageBarrel{
         }
     }
 
-    private int barrelId, multicastBarrelsPort, multicastDownloadersPort, messageRecoverySleepTime;
+
+    private int barrelId, multicastBarrelsPort, multicastDownloadersPort, messageRecoverySleepTime, lastChekedMessageID = -1;
     private int processedMessages = 0; // The number of messages processed from the downloader
     private int contiguosMessages = 0; // The number of contiguos messages received from the downloaders
+    
     private String diskFileFolderPath;
+    
+    private String fromDownloaderType = "type0"; // The type of the message that comes from the downloaders
+    private String toDownloaderType = "type1"; // The type of the message that goes to the downloaders (ACKS)
+    private String toBarrelType = "type2"; // The type of the message that goes to the barrels (Recovery requests)
+    private String fromBarrelType = "type3"; // The type of the message that comes from the barrels (recovered messages)
+    
     private InetAddress group = null;
     private MulticastSocket socket = null;
     // Processed data
@@ -68,6 +77,7 @@ public class IndexStorageBarrel{
     private LinkedBlockingQueue<String> receivedMessages = new LinkedBlockingQueue<>();
     private LinkedBlockingQueue<Integer> dataToProcess = new LinkedBlockingQueue<>();
     private LinkedBlockingQueue<String> toBeSentMessages = new LinkedBlockingQueue<>();
+    private LinkedBlockingQueue<String> missingMessages = new LinkedBlockingQueue<>();
 
     private ObjectOutputStream oos;
     private final Semaphore diskSemaphore = new Semaphore(1);
@@ -365,19 +375,57 @@ public class IndexStorageBarrel{
         }
     }
 
-    private void createRecoverRequest(int messageId){
-        
-        try{
-        Thread.sleep(messageRecoverySleepTime); // wait 5 seconds for the lost messages to arrive
-        if(!messagesMap.containsKey(messageId)){ // if the message still hasn't arrived
+    private void createRecoverRequest(){
 
-            // create a recover request
-            String message = "type1\n" + barrelId + "\n" + messageId;
-            toBeSentMessages.put(message); // add the message to the toBeSentMessages queue
-            System.out.println(LocalDateTime.now() + " : The recover request for the message with the id " + contiguosMessages + " was added to the toBeSentMessages queue");
-        }
-        }catch(Exception e){
-            e.printStackTrace();
+        System.out.println(LocalDateTime.now() + " : Recover request thread started");
+        
+        int messageId;
+        long timeStamp, timeElapsed;
+        String request;
+
+        while(true){
+            try{
+                
+                request = missingMessages.take(); // pop the request from the missingMessages queue
+                
+                // separate the timestamp and the message id
+                String[] tokens = request.split(" ");
+                timeStamp = Long.parseLong(tokens[0]);
+                messageId = Integer.parseInt(tokens[1]);
+
+                if(!messagesMap.containsKey(messageId)){ // if the message still hasn't arrived
+
+                    // check elapsed time
+                    if((timeElapsed = (System.currentTimeMillis() - timeStamp))/100 >= messageRecoverySleepTime/100){ // if the waiting time has passed
+        
+                        // create a recover request
+                        String message = "type1\n" + barrelId + "\n" + messageId;
+                        toBeSentMessages.put(message); // add the message to the toBeSentMessages queue
+                        System.out.println(LocalDateTime.now() + " : Recovery Timer expired, the recover request for the message with the id " + messageId + " was added to the toBeSentMessages queue");
+
+                        // add the new timestamp and message id to the missingMessages queue so it can be checked again
+                        missingMessages.put(System.currentTimeMillis() + " " + messageId);
+
+                    } else{ // if the waiting time hasn't passed
+                        
+                        Thread.sleep(messageRecoverySleepTime - timeElapsed);
+
+                        // check if the message has already arrived
+                        if(!messagesMap.containsKey(messageId)){ // if the message still hasn't arrived
+        
+                            // create a recover request
+                            String message = "type1\n" + barrelId + "\n" + messageId;
+                            toBeSentMessages.put(message); // add the message to the toBeSentMessages queue
+                            System.out.println(LocalDateTime.now() + " : Recovery Timer expired, the recover request for the message with the id " + messageId + " was added to the toBeSentMessages queue");
+
+                            // add the new timestamp and message id to the missingMessages queue so it can be checked again
+                            missingMessages.put(System.currentTimeMillis() + " " + messageId);
+                        }// else the message has already arrived
+                    }
+                }// else the message has already arrived
+            }catch(Exception e){
+                e.printStackTrace();
+            }
         }
     }
 
@@ -397,29 +445,30 @@ public class IndexStorageBarrel{
                 return; // The message was already received
             }
 
-            if(contiguosMessages < messageId){
-                System.out.println(LocalDateTime.now() + " : The message(s) sent before the message with the id " + contiguosMessages + " haven't arrived yet"); 
-                // Then the message(s) before this one was/were lost or haven't arrived yet
-
-                // create a thread to handle it
-                new Thread(() -> {
-                    createRecoverRequest(contiguosMessages); // TODO to many threads may be created, maybe use only a thread and mark sutff with time stamps to see time elapsed
-                }).start();
-            }
-
             // whether the previous messages arrived or not, this message will be saved
-
             // Save the data
             messagesMap.put(messageId, data);
+            System.out.println(LocalDateTime.now() + " : The message from the downloader " + downloaderId + " with the id " + messageId + " was saved in ram");
+
+            boolean contiguos = true;
             String message;
 
-            for (int i = contiguosMessages; i < messagesMap.size(); i++) {
+            for (int i = contiguosMessages; i < Math.max(messageId,messagesMap.size()); i++) { // update the number of contiguos messages
 
-                if((message = messagesMap.get(i)) != null)contiguosMessages++;
-                else break; // It may have more messages saved but they are not contiguos
+                if(contiguos && (messagesMap.get(i) != null))contiguosMessages++;
+                else {// the messages are not contiguos
+
+                    contiguos = false;
+                    if((i > lastChekedMessageID) && (messagesMap.get(i) == null)){ // if the message hasn't arrived yet
+
+                        lastChekedMessageID = i;
+                        // add the timestamp and message id to the missingMessages queue so it can be recovered
+                        System.out.println(LocalDateTime.now() + " : The message with the id " + i + " was added to the missingMessages queue");
+                        missingMessages.put(System.currentTimeMillis() + " " + i);
+                    }
+                }
             }
-            
-            System.out.println(LocalDateTime.now() + " : The message from the downloader " + downloaderId + " with the id " + messageId + " was saved in ram," + " the number of contiguos messages is " + contiguosMessages);
+            System.out.println(LocalDateTime.now() + " : The number of contiguos messages is " + contiguosMessages);
             
             dataToProcess.put(messageId); // Add the messageId to the queue so the main thread can process the data
             
@@ -501,6 +550,11 @@ public class IndexStorageBarrel{
                 // initiate a thread to process the data and save 
                 new Thread(() -> {
                     barrel.dataprocessor();
+                }).start();
+
+                // initiate a thread to create the recover requests
+                new Thread(() -> {
+                    barrel.createRecoverRequest();
                 }).start();
     
                 // initiate a listener thread to receive the messages from the downloaders and other barrels (main thread)
