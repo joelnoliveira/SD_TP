@@ -87,10 +87,14 @@ public class IndexStorageBarrel extends UnicastRemoteObject implements RMIBarrel
     private ObjectOutputStream oos;
     private final Semaphore diskSemaphore = new Semaphore(1);
 
+    // ---------------------- Remote methods ----------------------
     public void sayHI() throws RemoteException{
         System.out.println("HI");
     }
 
+    
+
+    // ---------------------- Local methods ----------------------
     public IndexStorageBarrel(int barrelId) throws RemoteException {
         this.barrelId = barrelId;
         System.out.println(LocalDateTime.now() + " : System is starting up");

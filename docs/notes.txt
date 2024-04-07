@@ -198,3 +198,5 @@ Talvez não mandar ack em mensagens que tenham sido recebidas por barrels em vez
 
 ------
 Considerar quando um barrel iniciar e não tiver nada em disco mandar um pedido aos outros para saber qual foi a maior ID mensagem recebida por cada um, para depois lhes ir pedindo a mensagens
+
+check if the url is valid or possible to connect before trying

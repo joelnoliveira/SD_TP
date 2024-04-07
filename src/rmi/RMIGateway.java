@@ -15,6 +15,7 @@ import java.util.Properties;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import barrels.IndexStorageBarrel;
 import barrels.RMIBarrelsInterface;
 
 
@@ -39,8 +40,8 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayDownloa
 
     public synchronized void clientAddIndexerUrl(String url) throws InterruptedException {
         
-        linkSearchCount = 0; // Reset the linkSearchCount, since the client is adding a new URL to be recursively indexed
         urlQueue.put(url);
+        linkSearchCount = 0; // Reset the linkSearchCount, since the client is adding a new URL to be recursively indexed
     }
 
     public synchronized void addUrl(String url) throws InterruptedException { 
@@ -71,6 +72,83 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayDownloa
         clients.add(client);
         client.notify("You are now subscribed to the gateway.");
     }
+
+    private IndexStorageBarrel getRandomBarrel() {
+        return (IndexStorageBarrel) barrels.get((int) (Math.random() * barrels.size()));
+    }
+
+    // public List<String> searchByTerms(String keywords) throws RemoteException {
+
+    //     // Get the start time of the search
+    //     long startTime = System.currentTimeMillis();
+        
+    //     // Initialize a list to store the search results
+    //     List<String> results = new ArrayList<String>();
+
+    //     // Get a random barrel
+    //     IndexStorageBarrel barrel = getRandomBarrel();
+        
+    //     // Create a new thread to perform the search
+    //     Thread searchThread = new Thread(() -> {
+    //         try {
+    //             // Get the URLs from the barrel by the given keywords
+    //             HashSet<String> urls = barrel.getURLsByTerms(keywords);
+                
+    //             // Verifica se a lista de URLs é nula
+    //             if (urls == null) {
+    //                 // Add a message to the results list if no results were found
+    //                 results.add("No results found");
+    //             } else {
+    //                 // For each URL in the list
+    //                 for (String url : urls) {
+    //                     try {
+    //                         // Get the page title and short quote for the URL
+    //                         String pageTitle = barrel.getPageTitle(url);
+    //                         String shortQuote = barrel.getShortQuote(url);
+    //                         // Add the page title, URL, and short quote to the results list
+    //                         results.add(pageTitle + " - " + url + "\n" + shortQuote + "\n");
+    //                     } catch (RemoteException e) {
+    //                         // Threat remote communication exceptions while getting title or short quote
+    //                         System.err.println("Error in obtaining short quote and/or title: " + e.getMessage());
+    //                         e.printStackTrace();
+    //                     }
+    //                 }
+    //             }
+    //         } catch (RemoteException e) {
+    //             // Threat remote communication exceptions while searching
+    //             System.err.println("Error getting the search: " + e.getMessage());
+    //         }
+    //     });
+
+    //     // Start the search thread
+    //     searchThread.start();
+
+    //     try {
+    //         // Wait for the search to complete
+    //         searchThread.join();
+    //     } catch (InterruptedException e) {
+    //         // Handle exceptions while waiting for the search to complete
+    //         System.out.println("Error getting the search: " + e.getMessage());
+    //     }
+        
+    //     // Get the end time of the search
+    //     long endTime = System.currentTimeMillis();
+        
+    //     // Calculate the search time
+    //     long searchTime = endTime - startTime;
+        
+    //     long mean = responseTimes.get(barrel);
+    //     if (mean == 0) {
+    //         mean = searchTime;
+    //     } else {
+    //         mean = (mean + searchTime) / 2;
+    //     }
+    //     // Store the response time for the barrel
+    //     responseTimes.put(barrel, mean);
+        
+    //     // Return the search results
+    //     return groupResults(results);
+    // }
     
     public static void main(String args[]) {
 
