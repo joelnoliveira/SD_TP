@@ -15,6 +15,7 @@ import java.rmi.NotBoundException;
 
 public class RMIClient extends UnicastRemoteObject implements RMIClientsInterface{
 
+    private Scanner sc = new Scanner(System.in);
     private int id;
     private RMIGatewayClientsInterface gateway;
 
@@ -43,6 +44,99 @@ public class RMIClient extends UnicastRemoteObject implements RMIClientsInterfac
         System.out.println("Enter the desired option: ");
     }
 
+    private static int checkInt(Scanner sc) {
+        while (!sc.hasNextInt()) {    
+            System.out.println("You must enter an integer: ");
+            sc.next();				  
+        }
+        int num = sc.nextInt();
+        return num;
+    }
+
+    private void printPage(List<String> res) {
+        String clientInput = "";
+        int i = 0;
+        for (String r : res) {
+            System.out.println(r);
+            if (i % 10 == 0 && i != 0) {
+                System.out.println("Enter 's' to exit or any other key to continue");
+                clientInput = sc.nextLine().toLowerCase();
+                if (clientInput.equals("s")) {
+                    break;
+                }
+            }
+            i++;
+        }
+    }
+
+    public void start(RMIGatewayClientsInterface gateway) throws RemoteException, NotBoundException, MalformedURLException, InterruptedException {
+        int option;
+        do {
+            menu();
+            option = checkInt(sc);
+            sc.nextLine();
+            options(gateway, option);
+        } while (option != 5);
+    }
+
+    public void options(RMIGatewayClientsInterface gateway, int option) throws RemoteException, InterruptedException {
+        switch(option) {
+            case 1:
+                System.out.println("Enter the URL you want to index:");
+                // Index the URL
+                String url = sc.nextLine();
+                gateway.clientAddIndexerUrl(url);
+                System.out.println("URL " + url + " indexed successfully");
+                System.out.println(" ");
+                break;
+            case 2:
+                System.out.println("Enter the search terms:");
+                String keywords = sc.nextLine().toLowerCase();
+                List<String> res = gateway.searchByTerms(keywords);
+                System.out.println("Search result: ");
+                printPage(res);
+                break;
+            case 3:
+                System.out.println("Enter the URL you want to query: ");
+                // Query the list of pages linking to a specific page
+                String urlConsult = sc.nextLine();
+                List<String> res1 = gateway.consult(urlConsult);
+                System.out.println("Query result: ");
+                for (String r : res1) {
+                    System.out.println(r);
+                }
+                break;
+            case 4:
+                // Query real-time updated administration page
+                System.out.println("Real-time updated administration page");
+                List<String> res2 = gateway.topSearches();
+                System.out.println("Most searched terms: ");
+                for (String r : res2) {
+                    System.out.println(r);
+                }
+                List<Integer> barrels = gateway.getBarrelsList();
+                System.out.println("Connected barrels: ");
+                for (int b : barrels) {
+                    System.out.println("Barrel - " + b);
+                }
+                System.out.println("Response time: ");
+                List<String> res3 = gateway.getMeanResponseTimeByBarrel();
+                for (String r : res3) {
+                    System.out.println(r);
+                }
+                break;
+            case 5:
+                System.out.println("Exiting");
+                System.out.println("Goodbye!");
+                System.exit(0);
+                // Exit
+                break;
+            default:
+                System.out.println("Invalid option");
+                // Invalid option
+        }
+    }
+
     public static void main(String[] args) {
         
         String registryName;
@@ -59,43 +153,7 @@ public class RMIClient extends UnicastRemoteObject implements RMIClientsInterfac
 
             client.gateway = (RMIGatewayClientsInterface) Naming.lookup(registryName);
 
-            int option;
-            String inputString;
-            
-            //read from the input and assure that it is an integer
-            try (Scanner sc = new Scanner(System.in)){
-
-                client.menu();
-                while (sc.hasNextLine()){
-                    client.menu();
-                    inputString = sc.nextLine();
-                    try{
-                        option = Integer.parseInt(inputString);
-                        switch(option) {
-
-                            case 1:
-            
-                                System.out.println("Enter the URL you want to index:");
-                                // Index the URL
-                                inputString = sc.nextLine();
-
-                                client.gateway.clientAddIndexerUrl(inputString);
-                                System.out.println("URL " + inputString + " indexed successfully");
-                                System.out.println(" ");
-                                break;
-                            
-                            default:
-                                System.out.println("Invalid option");
-                                // Invalid option
-                        }
-                    }catch (NumberFormatException e){
-                        System.out.println("Invalid option");
-                    }
-                }
-                
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            client.start(client.gateway);
         
         }catch (Exception e){
             e.printStackTrace();

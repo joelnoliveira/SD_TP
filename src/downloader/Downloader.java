@@ -14,6 +14,7 @@ import org.jsoup.nodes.Element;
 import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
 
+import java.util.HashMap;
 import java.util.Properties;
 import java.util.StringTokenizer;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -30,12 +31,17 @@ import java.net.InetSocketAddress;
 
 public class Downloader {
 
-    private int multicastBarrelsPort;
+    private int downloaderId, multicastBarrelsPort, ackReturnTimer;
+
+    String ackType = "type1";
+
     private InetAddress group = null;
     private MulticastSocket socket = null;
 
     private LinkedBlockingQueue<String> receivedMessages = new LinkedBlockingQueue<>();
     private LinkedBlockingQueue<String> toBeSentMessages = new LinkedBlockingQueue<>();
+    private LinkedBlockingQueue<String> missingAcksQueue = new LinkedBlockingQueue<>();
+    private HashMap<Integer, Boolean> ackedMessages = new HashMap<>();
 
     private void receiver(){
 
@@ -56,16 +62,95 @@ public class Downloader {
         }
     }
 
-    private void acksChecker(){
+    private void messageProcessor(){
 
-        // pop the message from the queue receivedMessages
-        // check if the message is an ack (type 2) at beggining
-        // if it is check the next token to see if it is from this downloader
-        // at last check the message id
-        // TODO: implement this
+        String message, type;
+        System.out.println(LocalDateTime.now() + " : Message Processor thread started!");
 
+        while (true){
 
+            try {
+
+                message = receivedMessages.take();
+                //check the recived messages, pop the first message from the queue
+                
+                StringTokenizer st = new StringTokenizer(message, "\n");
+
+                type = st.nextToken();
+
+                if(type.equals(ackType)){ //if the message is an ack
+                    //check if it is from this downloader
+                    
+                    int downloaderId = Integer.parseInt(st.nextToken());
+                    int messageId = Integer.parseInt(st.nextToken());
+
+                    if(downloaderId == this.downloaderId){
+                        ackedMessages.put(messageId, true);
+                    }
+                }
+
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
     }
+
+    // private void acksChecker(){
+
+    //     System.out.println(LocalDateTime.now() + " : Acks Checker thread started!");
+
+    //     int messageId;
+    //     long timeStamp, timeElapsed;
+    //     String message;
+
+    //     while (true){
+
+    //         try {
+
+    //             message = missingAcksQueue.take(); // pop a missing ack from the queue
+    //             // separate the timeStamp from the messageId
+
+    //             // separate the timestamp and the message id
+    //             String[] tokens = message.split(" ");
+    //             timeStamp = Long.parseLong(tokens[0]);
+    //             messageId = Integer.parseInt(tokens[1]);
+
+    //             if(!ackedMessages.containsKey(messageId)){ // if the message still hasn't arrived
+
+    //                 // check elapsed time
+    //                 if((timeElapsed = (System.currentTimeMillis() - timeStamp))/100 >= ackReturnTimer/100){ // if the waiting time has passed
+        
+    //                     // create a recover request
+    //                     String message = recoveryType + "\n" + barrelId + "\n" + messageId;
+    //                     toBeSentMessages.put(message); // add the message to the toBeSentMessages queue
+    //                     System.out.println(LocalDateTime.now() + " : Recovery Timer expired, the recover request for the message with the id " + messageId + " was added to the toBeSentMessages queue");
+
+    //                     // add the new timestamp and message id to the missingAcksQueue queue so it can be checked again
+    //                     missingAcksQueue.put(System.currentTimeMillis() + " " + messageId);
+
+    //                 } else{ // if the waiting time hasn't passed
+                        
+    //                     Thread.sleep(ackReturnTimer - timeElapsed);
+
+    //                     // check if the message has already arrived
+    //                     if(!ackedMessages.containsKey(messageId)){ // if the message still hasn't arrived
+        
+    //                         // create a recover request
+    //                         String message = recoveryType + "\n" + barrelId + "\n" + messageId;
+    //                         toBeSentMessages.put(message); // add the message to the toBeSentMessages queue
+    //                         System.out.println(LocalDateTime.now() + " : Recovery Timer expired, the recover request for the message with the id " + messageId + " was added to the toBeSentMessages queue");
+
+    //                         // add the new timestamp and message id to the missingAcksQueue queue so it can be checked again
+    //                         missingAcksQueue.put(System.currentTimeMillis() + " " + messageId);
+    //                     }// else the message has already arrived
+    //                 }
+    //             }// else the message has already arrived
+
+    //         } catch (InterruptedException e) {
+    //             e.printStackTrace();
+    //         }
+    //     }
+    // }
 
     private void sender(){
 
@@ -92,7 +177,6 @@ public class Downloader {
 
     public static void main(String args[]) {
 
-        int downloaderId;
         int maxBytesTitle, maxBytesCitation, maxBytesTokens, maxBytesLinks, currentBytesLinks;
         int multicastDownloadersPort, multticastTTL;
         String host, registryName, multicastAddress, multicastInterface;
@@ -103,7 +187,7 @@ public class Downloader {
 
             Downloader downloader = new Downloader();
 
-            downloaderId = Integer.parseInt(args[0]);
+            downloader.downloaderId = Integer.parseInt(args[0]);
             Properties prop = new Properties();
             InputStream input = new FileInputStream(args[1]);
             prop.load(input);
@@ -161,7 +245,7 @@ public class Downloader {
         
                             URLData urlData = new URLData();
                             urlData.pageURL = gateway.getNextUrl();
-                            urlData.downloaderId = downloaderId;
+                            urlData.downloaderId = downloader.downloaderId;
                             
                             System.out.println("Message number: " + urlData.messageId);
                             

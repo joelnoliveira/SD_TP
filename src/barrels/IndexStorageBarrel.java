@@ -65,6 +65,7 @@ public class IndexStorageBarrel extends UnicastRemoteObject implements RMIBarrel
     private String toDownloaderType = "type1"; // The type of the message that goes to the downloaders (ACKS)
     private String recoveryType = "type2"; // The type of the message that goes to the barrels (Recovery requests)
     private String recoverdType = "type3"; // The type of the message that comes from the barrels (recovered messages)
+    private String discoveryType = "type4"; // The type of the message that barrels send on startup to check if the other barrels have messages
     
     private InetAddress group = null;
     private MulticastSocket socket = null;
@@ -98,15 +99,176 @@ public class IndexStorageBarrel extends UnicastRemoteObject implements RMIBarrel
     public void sayHI() throws RemoteException{
         System.out.println("HI");
     }
+
+    public boolean hasURL(String url) throws RemoteException{
+        // Check if the urlDataMap contains the given URL
+        return urlDataMap.containsKey(url);
+    }
     
+    public LinkedHashSet<String> getURLsByTerms(String terms) throws RemoteException{
+        // Initialize an ArrayList to store individual terms
+        ArrayList<String> termsList = new ArrayList<String>();
+        // Split the input terms string into individual terms and add them to the list
+        for (String term : terms.split(" ")) {
+            termsList.add(term);
+            if(!termCounts.containsKey(term)){
+                termCounts.put(term, 1);
+            } else {
+                termCounts.merge(term, 1, Integer::sum);
+            }
+        }
+        // Initialize a HashSet to store URLs
+        HashSet<String> urls = new HashSet<String>();
+        // Flag to track if it's the first term in the loop
+        boolean firstTerm = true;
+        // Iterate over each term in the termsList
+        for (String term : termsList) {
+            // Retrieve the set of URLs associated with the current term from the index
+            HashSet<Integer> termURLsIndexes = index.get(term);
+            // Check if the term is found in the index
+            if (termURLsIndexes == null) {
+                return null; // Term not found
+            }
+            // Initialize a HashSet to store URLs associated with the current term
+            HashSet<String> termURLs = new HashSet<>();
+            // Iterate over each index in the set of URLs associated with the current term
+            for (int index : termURLsIndexes) {
+                // Retrieve the URL from the urlMap based on the index and add it to the termURLs set
+                String url = urlMap.get(index);
+                termURLs.add(url);
+            }
+            // If it's the first term, add all URLs associated with the first term to the urls set
+            // Otherwise, retain only the common URLs between the current set and the set of URLs associated with the previous term
+            if (firstTerm) {
+                urls.addAll(termURLs);
+                firstTerm = false;
+            } else {
+                urls.retainAll(termURLs);
+            }
+            System.out.println(urls);
+        }
+        // Return a sorted set of URLs by page links
+        return getSortedByPageLinks(urls);
+    }
+
+    public LinkedHashSet<String> getSortedByPageLinks(HashSet<String> termURLs) throws RemoteException{
+        // Initialize a HashMap to store URLs grouped by relevance
+        HashMap<Integer, ArrayList<String>> notSortedURLs = new HashMap<Integer, ArrayList<String>>();
+
+        // Sort URLs by relevance
+        for (String url : termURLs) {
+            int rel = urlDataMap.get(url).relevance;
+            System.out.println(rel);
+            if (!notSortedURLs.containsKey(rel)) {
+                notSortedURLs.put(rel, new ArrayList<String>());
+            }
+            notSortedURLs.get(rel).add(url);
+        }
     
+        // Sort URLs by relevance
+        Map<Integer, ArrayList<String>> sortedURLs = sortByKeys(notSortedURLs);
+    
+        // Initialize a LinkedHashSet to store sorted URLs
+        LinkedHashSet<String> sortedURLsSet = new LinkedHashSet<String>();
+    
+        // Get the keys (relevance values) in descending order
+        List<Integer> keys = new ArrayList<>(sortedURLs.keySet());
+        Collections.reverse(keys);
+    
+        // Add URLs to the sorted set in descending relevance order
+        for (Integer key : keys) {
+            List<String> urls = sortedURLs.get(key);
+            Collections.sort(urls); // Sort URLs lexicographically
+            sortedURLsSet.addAll(urls);
+        }
+    
+        // Return the sorted set of URLs
+        return sortedURLsSet;
+    }
+
+    public String getShortQuote(String url)  throws RemoteException{
+        // Retrieve URL data from the map based on the provided URL
+        URL urlData = urlDataMap.get(url);
+        // Check if URL data is found
+        if (urlData == null) {
+            // Return a message indicating that the URL is not found
+            return "URL not found";
+        }
+        // Retrieve the text content from the URL data
+        String text = urlData.textCitation;
+        // Check if text content exists
+        if (text == null) {
+            // If no text content is available, return an empty string
+            return "";
+        }
+        // Extract a short quote from the text content, limited to 40 characters or the length of the text if shorter
+        String quote = text.substring(0, Math.min(40, text.length())) + "...";
+        // Return the short quote
+        return quote;
+    }
+
+    public String getPageTitle(String url) throws RemoteException {
+        // Retrieve URL data from the map based on the provided URL
+        URL urlData = urlDataMap.get(url);
+        // Check if URL data is found
+        if (urlData == null) {
+            // Return a message indicating that the URL is not found
+            return "URL not found";
+        }
+        // Return the title of the URL data
+        return urlData.title;
+    }
+
+    public ArrayList<String> getPagesThatLinksTo(String url) throws RemoteException{
+        // Initialize an ArrayList to store pages that link to the given URL
+        ArrayList<String> pages = new ArrayList<String>();
+    
+        // Iterate over each entry in the urlDataMap
+        for (Map.Entry<String, URL> entry : urlDataMap.entrySet()) {
+            String page = entry.getKey(); // Get the page URL
+            HashSet<Integer> urlsIDs = entry.getValue().links; // Get the set of URLs linked from the page
+            ArrayList<String> links = new ArrayList<String>();
+            
+            // Convert the set of URL IDs to a list of URLs
+            for (int id : urlsIDs) {
+                links.add(urlMap.get(id));
+            }
+    
+            // Check if the list of links contains the given URL
+            if (links.contains(url)) {
+                pages.add(page); // If the URL is found, add the page to the list
+            }
+        }
+        
+        // Return the list of pages that link to the given URL
+        return pages;
+    }
+
+    public Map<String, Integer> getSearchedTerms() {
+        List<Map.Entry<String, Integer>> sortedTerms = new ArrayList<>(termCounts.entrySet());
+        sortedTerms.sort(Collections.reverseOrder(Map.Entry.comparingByValue()));
+        Map<String, Integer> topTerms = new LinkedHashMap<>();
+        for (int i = 0; i < sortedTerms.size(); i++) {
+            topTerms.put(sortedTerms.get(i).getKey(), sortedTerms.get(i).getValue());
+            System.out.println("Term: " + sortedTerms.get(i).getKey() + " Count: " + sortedTerms.get(i).getValue());
+        }
+        return topTerms;
+    }
+
+    public int getBarrelID() throws RemoteException{
+        return barrelId;
+    }
     // ---------------------- Local methods ----------------------
     public IndexStorageBarrel(int barrelId) throws RemoteException {
+
         this.barrelId = barrelId;
         System.out.println(LocalDateTime.now() + " : System is starting up");
+
         try {
+
             File file = new File(barrelId + ".disk");
             boolean append = file.exists() && file.length() > 0;
+
             if(append){
                 System.out.println(LocalDateTime.now() + " : Datafile found in disk, loading data objects");
                 // Open the file and load the data objects
@@ -124,6 +286,14 @@ public class IndexStorageBarrel extends UnicastRemoteObject implements RMIBarrel
                 System.out.println(LocalDateTime.now() + " : No datafile found in disk, creating one");
                 file.createNewFile();
             }
+
+            // add a discovery message to the toBeSentMessages queue
+            try {
+                toBeSentMessages.put(discoveryType + "\n" + barrelId + "\n" + -1);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
             this.oos = append ? new AppendableObjectOutputStream(new FileOutputStream(file, true)) : new ObjectOutputStream(new FileOutputStream(file, true));
             
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {// thread to close the ObjectOutputStream
@@ -137,7 +307,7 @@ public class IndexStorageBarrel extends UnicastRemoteObject implements RMIBarrel
                     }
                 }
                     try {
-                        gateway.barrelUnsubscribe(this);
+                        gateway.barrelUnsubscribe(barrelId);
                     } catch (RemoteException e) {
                        // ignore, if doesn't work, maybe it never was subscribed
                     }
@@ -338,6 +508,24 @@ public class IndexStorageBarrel extends UnicastRemoteObject implements RMIBarrel
         // else the message is not in the messagesMap so we cannot help
     }
 
+    private void sendHighestDownloaderIDMessage(){
+            
+        String message;
+
+        try {
+            if (!messagesMap.isEmpty()) {
+                int maxKey = Collections.max(messagesMap.keySet());
+                System.out.println("Maximum Key: " + maxKey);
+
+                message = messagesMap.get(maxKey);
+                toBeSentMessages.put(message);
+                System.out.println(LocalDateTime.now() + " : The message with the max id " + maxKey + " was sent to answer the discovery message");
+            }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
     private void messageProcessor(){
 
         System.out.println(LocalDateTime.now() + " : Message processor thread started");
@@ -358,7 +546,14 @@ public class IndexStorageBarrel extends UnicastRemoteObject implements RMIBarrel
                         System.out.println(LocalDateTime.now() + " : Barrel received its own recovery message");
                     }
                 }
-                
+                else if(data.startsWith(discoveryType)){ // if the data came from a barrel
+
+                    // check if the message didnt came from this barrel
+                    if(Integer.parseInt(data.split("\n")[1]) != barrelId)sendHighestDownloaderIDMessage();
+                    else{
+                        System.out.println(LocalDateTime.now() + " : Barrel received its own discovery message");
+                    }
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -508,7 +703,25 @@ public class IndexStorageBarrel extends UnicastRemoteObject implements RMIBarrel
             e.printStackTrace();
         }
     }
-
+    
+    public Map<Integer, ArrayList<String>> sortByKeys(HashMap<Integer, ArrayList<String>> map) {
+        // Convert the map entries to a list
+        ArrayList<Map.Entry<Integer, ArrayList<String>>> list = new ArrayList<>(map.entrySet());
+        
+        // Sort the list of entries by keys (relevance values) in descending order
+        list.sort((o1, o2) -> o2.getKey().compareTo(o1.getKey()));
+    
+        // Create a LinkedHashMap to store the sorted entries
+        Map<Integer, ArrayList<String>> sortedMap = new LinkedHashMap<>();
+        
+        // Add the sorted entries to the LinkedHashMap
+        for (Map.Entry<Integer, ArrayList<String>> entry : list) {
+            sortedMap.put(entry.getKey(), entry.getValue());
+        }
+        
+        // Return the sorted map
+        return sortedMap;
+    }
 
     public static void main(String[] args) {
 
@@ -548,7 +761,9 @@ public class IndexStorageBarrel extends UnicastRemoteObject implements RMIBarrel
             
             try { // Create a multicast socket
                 barrel.gateway = (RMIGatewayBarrelsInterface) Naming.lookup(registryName);
-                barrel.gateway.barrelSubscribe(barrel);
+                barrel.gateway.barrelSubscribe(barrel.barrelId, barrel);
+
+                barrel.gateway.addResponseTimeList(barrel,0L);
 
                 barrel.socket = new MulticastSocket(barrel.multicastBarrelsPort);
                 System.out.println(LocalDateTime.now() + " : Multicast socket created!");
