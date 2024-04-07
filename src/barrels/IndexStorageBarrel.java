@@ -41,7 +41,18 @@ import rmi.RMIGatewayBarrelsInterface;
 import java.util.HashSet;
 import java.util.concurrent.LinkedBlockingQueue;
 
+/**
+ * The `IndexStorageBarrel` class represents a barrel that stores and manages indexed data.
+ * It extends the `UnicastRemoteObject` class and implements the `RMIBarrelsInterface` interface.
+ * This class provides methods for retrieving URLs based on search terms, sorting URLs by relevance,
+ * retrieving short quotes from URLs, retrieving page titles, and finding pages that link to a given URL.
+ * It also contains inner classes and data structures for storing and processing data.
+ */
 public class IndexStorageBarrel extends UnicastRemoteObject implements RMIBarrelsInterface{
+    /**
+     * This class extends the ObjectOutputStream class to provide a custom implementation
+     * for appending objects to an output stream without writing a header.
+     */
     private class AppendableObjectOutputStream extends ObjectOutputStream {
         public AppendableObjectOutputStream(OutputStream out) throws IOException {
             super(out);
@@ -72,6 +83,9 @@ public class IndexStorageBarrel extends UnicastRemoteObject implements RMIBarrel
 
     RMIGatewayBarrelsInterface gateway;
     // Processed data
+    /**
+     * Represents a URL object.
+     */
     private class URL{
 
         private int id = 0,relevance = 0; // Number of links that point to this url
@@ -97,11 +111,25 @@ public class IndexStorageBarrel extends UnicastRemoteObject implements RMIBarrel
 
     // ---------------------- Remote methods ----------------------
 
+    /**
+     * Checks if the given URL exists in the urlDataMap.
+     *
+     * @param url the URL to check
+     * @return true if the urlDataMap contains the given URL, false otherwise
+     * @throws RemoteException if a remote exception occurs
+     */
     public boolean hasURL(String url) throws RemoteException{
         // Check if the urlDataMap contains the given URL
         return urlDataMap.containsKey(url);
     }
     
+    /**
+     * Retrieves a set of URLs associated with the given terms.
+     *
+     * @param terms the terms to search for
+     * @return a LinkedHashSet of URLs associated with the given terms, sorted by page links
+     * @throws RemoteException if a remote exception occurs
+     */
     public LinkedHashSet<String> getURLsByTerms(String terms) throws RemoteException{
         // Initialize an ArrayList to store individual terms
         ArrayList<String> termsList = new ArrayList<String>();
@@ -148,6 +176,13 @@ public class IndexStorageBarrel extends UnicastRemoteObject implements RMIBarrel
         return getSortedByPageLinks(urls);
     }
 
+    /**
+     * Retrieves a sorted set of URLs based on their relevance to the given term URLs.
+     *
+     * @param termURLs a HashSet of term URLs
+     * @return a LinkedHashSet of URLs sorted by relevance
+     * @throws RemoteException if a remote exception occurs
+     */
     public LinkedHashSet<String> getSortedByPageLinks(HashSet<String> termURLs) throws RemoteException{
         // Initialize a HashMap to store URLs grouped by relevance
         HashMap<Integer, ArrayList<String>> notSortedURLs = new HashMap<Integer, ArrayList<String>>();
@@ -186,6 +221,15 @@ public class IndexStorageBarrel extends UnicastRemoteObject implements RMIBarrel
         return sortedURLsSet;
     }
 
+    /**
+        * Retrieves a short quote from the text content of a given URL.
+        * The quote is limited to a specified character limit.
+        *
+        * @param url The URL of the webpage to retrieve the quote from.
+        * @param characterLimit The maximum number of characters for the short quote.
+        * @return The short quote from the text content, limited to the character limit.
+        * @throws RemoteException If an error occurs during the remote method invocation.
+        */
     public String getShortQuote(String url, int characterLimit)  throws RemoteException{
         // Retrieve URL data from the map based on the provided URL
         URL urlData = urlDataMap.get(url);
@@ -207,6 +251,13 @@ public class IndexStorageBarrel extends UnicastRemoteObject implements RMIBarrel
         return quote;
     }
 
+    /**
+     * Retrieves the page title for the given URL.
+     *
+     * @param url the URL for which to retrieve the page title
+     * @return the page title of the URL, or "URL not found" if the URL is not found in the map
+     * @throws RemoteException if there is a remote exception while retrieving the page title
+     */
     public String getPageTitle(String url) throws RemoteException {
         // Retrieve URL data from the map based on the provided URL
         URL urlData = urlDataMap.get(url);
@@ -219,6 +270,13 @@ public class IndexStorageBarrel extends UnicastRemoteObject implements RMIBarrel
         return urlData.title;
     }
 
+    /**
+     * Retrieves the list of pages that link to the given URL.
+     * 
+     * @param url The URL to search for in the list of links.
+     * @return An ArrayList of page URLs that link to the given URL.
+     * @throws RemoteException If a remote exception occurs during the method execution.
+     */
     public ArrayList<String> getPagesThatLinksTo(String url) throws RemoteException{
         // Initialize an ArrayList to store pages that link to the given URL
         ArrayList<String> pages = new ArrayList<String>();
@@ -244,6 +302,11 @@ public class IndexStorageBarrel extends UnicastRemoteObject implements RMIBarrel
         return pages;
     }
 
+    /**
+     * Returns a map of the top searched terms and their corresponding counts.
+     *
+     * @return a map containing the top searched terms and their counts
+     */
     public Map<String, Integer> getSearchedTerms() {
         List<Map.Entry<String, Integer>> sortedTerms = new ArrayList<>(termCounts.entrySet());
         sortedTerms.sort(Collections.reverseOrder(Map.Entry.comparingByValue()));
@@ -254,10 +317,22 @@ public class IndexStorageBarrel extends UnicastRemoteObject implements RMIBarrel
         return topTerms;
     }
 
+    /**
+     * Returns the ID of the barrel.
+     *
+     * @return the ID of the barrel
+     * @throws RemoteException if a remote exception occurs
+     */
     public int getBarrelID() throws RemoteException{
         return barrelId;
     }
     // ---------------------- Local methods ----------------------
+    /**
+     * Constructs a new IndexStorageBarrel object with the specified barrel ID.
+     * 
+     * @param barrelId the ID of the barrel
+     * @throws RemoteException if a remote exception occurs
+     */
     public IndexStorageBarrel(int barrelId) throws RemoteException {
 
         this.barrelId = barrelId;
@@ -316,6 +391,11 @@ public class IndexStorageBarrel extends UnicastRemoteObject implements RMIBarrel
         }
     }
 
+    /**
+     * Saves the given string data to disk.
+     *
+     * @param str the string data to be saved
+     */
     private void saveDataToDisk(String str){
         
         try {
@@ -330,6 +410,9 @@ public class IndexStorageBarrel extends UnicastRemoteObject implements RMIBarrel
         }
     }
 
+    /**
+     * Sends messages to the appropriate destinations based on their type.
+     */
     private void sender(){
 
         System.out.println(LocalDateTime.now() + " : Sender thread started");
@@ -363,6 +446,11 @@ public class IndexStorageBarrel extends UnicastRemoteObject implements RMIBarrel
         }
     } 
 
+    /**
+     * This method is responsible for processing the data received from the message queue.
+     * It retrieves the message ID from the queue, processes the data, and updates the URL index accordingly.
+     * The method is synchronized to ensure thread safety.
+     */
     private synchronized void dataprocessor(){ // whis one and search should be synchronized
 
         System.out.println(LocalDateTime.now() + " : Data processor thread started");
@@ -495,6 +583,13 @@ public class IndexStorageBarrel extends UnicastRemoteObject implements RMIBarrel
         }
     }
     
+    /**
+     * Sends the missed messages to the barrel that requested them.
+     * If the message is in the messagesMap, it adds the message ID to the toBeSentMessages queue.
+     * Otherwise, it does nothing.
+     *
+     * @param messageId the ID of the missed message
+     */
     private void sendMissedMessages(int messageId){ // send the missed messages to the barrel that requested them
         
         String data = null;
@@ -512,6 +607,9 @@ public class IndexStorageBarrel extends UnicastRemoteObject implements RMIBarrel
         // else the message is not in the messagesMap so we cannot help
     }
 
+    /**
+     * Sends the message with the highest ID to answer the discovery message.
+     */
     private void sendHighestDownloaderIDMessage(){
             
         String message;
@@ -529,6 +627,14 @@ public class IndexStorageBarrel extends UnicastRemoteObject implements RMIBarrel
         }
     }
 
+    /**
+     * Processes the received messages in a separate thread.
+     * This method continuously retrieves messages from the receivedMessages queue and performs different actions based on the message type.
+     * If the message is from a downloader or a barrel, it is saved.
+     * If the message is a recovery message, it checks if it didn't come from this barrel and sends missed messages if necessary.
+     * If the message is a discovery message, it checks if it didn't come from this barrel and sends the highest downloader ID message.
+     * This method runs until there are no more messages in the receivedMessages queue or an exception occurs.
+     */
     private void messageProcessor(){
 
         System.out.println(LocalDateTime.now() + " : Message processor thread started");
@@ -563,10 +669,22 @@ public class IndexStorageBarrel extends UnicastRemoteObject implements RMIBarrel
         }
     }
     
+    /**
+     * Searches for a specific query in the index storage barrel.
+     *
+     * @param batchNumber the batch number to search in
+     * @param query the query to search for
+     * @return the result of the search as a string
+     */
     synchronized String search(int batchNumber, String query){
         return "result";
     }
 
+    /**
+     * Saves a disk message in the RAM and adds it to the processing queue.
+     * 
+     * @param data The data of the disk message to be saved.
+     */
     private void saveDiskMessage(String data){ // save it on the ram
 
         int messageId, downloaderId;
@@ -598,6 +716,13 @@ public class IndexStorageBarrel extends UnicastRemoteObject implements RMIBarrel
         }
     }
 
+    /**
+     * Creates a recover request for missing messages.
+     * This method continuously checks for missing messages and creates recover requests for them.
+     * If a message hasn't arrived within a certain time frame, a recover request is created and added to the toBeSentMessages queue.
+     * The method also adds the new timestamp and message ID to the missingMessages queue for further checking.
+     * If the message has already arrived, no recover request is created.
+     */
     private void createRecoverRequest(){
 
         System.out.println(LocalDateTime.now() + " : Recover request thread started");
@@ -652,6 +777,11 @@ public class IndexStorageBarrel extends UnicastRemoteObject implements RMIBarrel
         }
     }
 
+    /**
+     * Saves the downloader message in RAM, processes the data, and saves it to disk.
+     * 
+     * @param data The data of the downloader message.
+     */
     private void saveDownloaderMessage(String data){ // save it on the ram
 
         int messageId, downloaderId;
@@ -707,6 +837,12 @@ public class IndexStorageBarrel extends UnicastRemoteObject implements RMIBarrel
         }
     }
     
+    /**
+     * Sorts a map by its keys (relevance values) in descending order.
+     *
+     * @param map the map to be sorted
+     * @return a new map with the entries sorted by keys in descending order
+     */
     public Map<Integer, ArrayList<String>> sortByKeys(HashMap<Integer, ArrayList<String>> map) {
         // Convert the map entries to a list
         ArrayList<Map.Entry<Integer, ArrayList<String>>> list = new ArrayList<>(map.entrySet());
@@ -726,6 +862,12 @@ public class IndexStorageBarrel extends UnicastRemoteObject implements RMIBarrel
         return sortedMap;
     }
 
+    /**
+     * The main method is the entry point of the program.
+     * It loads the configurations, creates a multicast socket, starts multiple threads, and receives messages from downloaders and other barrels.
+     *
+     * @param args The command line arguments. The first argument is the barrel ID, and the second argument is the path to the configuration file.
+     */
     public static void main(String[] args) {
 
         int multticastTTL, maxMulticastBytes;

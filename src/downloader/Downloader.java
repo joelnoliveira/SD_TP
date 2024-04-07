@@ -29,6 +29,12 @@ import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 
+/**
+ * The Downloader class represents a downloader that sends and receives messages to and from barrels.
+ * It utilizes multicast communication to send messages and receive acknowledgments.
+ * The class contains methods for receiving messages, processing messages, checking acknowledgments,
+ * and sending messages to barrels.
+ */
 public class Downloader {
 
     private int downloaderId, multicastBarrelsPort, ackReturnTimer;
@@ -43,6 +49,9 @@ public class Downloader {
     private LinkedBlockingQueue<String> missingAcksQueue = new LinkedBlockingQueue<>();
     private HashMap<Integer, String> messages = new HashMap<>(); // messages that have been sent to the barrels, when ack is received, remove from the list
 
+    /**
+     * Receives incoming datagrams and stores the received messages in a shared data structure.
+     */
     private void receiver(){
 
         byte[] bytes = new byte[1024];
@@ -62,6 +71,9 @@ public class Downloader {
         }
     }
 
+    /**
+     * Processes the received messages and handles acknowledgments.
+     */
     private void messageProcessor(){
 
         String message, type;
@@ -97,6 +109,12 @@ public class Downloader {
         }
     }
 
+    /**
+     * Monitors the acknowledgment status of messages and takes appropriate actions based on the elapsed time.
+     * This method runs in a separate thread and continuously checks for missing acknowledgments.
+     * If an acknowledgment is missing for a certain amount of time, the corresponding message is added to the toBeSentMessages queue for retransmission.
+     * If an acknowledgment is still missing after a recovery timer expires, a recovery request is added to the toBeSentMessages queue.
+     */
     private void acksChecker(){
 
         System.out.println(LocalDateTime.now() + " : Acks Checker thread started!");
@@ -150,6 +168,9 @@ public class Downloader {
         }
     }
 
+    /**
+     * Sends messages to the barrels.
+     */
     private void sender(){
 
         byte[] bytes;
@@ -187,6 +208,13 @@ public class Downloader {
         }
     }
 
+    /**
+     * The main method is the entry point of the program.
+     * It loads configurations, creates a multicast socket, and initializes threads for sending and receiving messages.
+     * It continuously processes URLs by connecting to them, extracting information, and sending the data to the Index Storage Barrels.
+     * 
+     * @param args An array of command-line arguments. The first argument is the downloader ID, and the second argument is the path to the configuration file.
+     */
     public static void main(String args[]) {
 
         int maxBytesTitle, maxBytesCitation, maxBytesTokens, maxBytesLinks, currentBytesLinks;

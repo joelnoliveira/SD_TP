@@ -13,18 +13,33 @@ import java.net.MalformedURLException;
 import java.rmi.NotBoundException;
 
 
+/**
+ * The RMIClient class represents a client that interacts with the RMIServer through RMI (Remote Method Invocation).
+ * It implements the RMIClientsInterface and extends the UnicastRemoteObject class.
+ * This class provides methods for indexing URLs, searching for terms, querying pages, and viewing real-time updated administration page.
+ */
 public class RMIClient extends UnicastRemoteObject implements RMIClientsInterface{
 
     private Scanner sc = new Scanner(System.in);
     private int id, characterLimit;
     private RMIGatewayClientsInterface gateway;
 
+    /**
+     * Constructs a new RMIClient object.
+     * @throws Exception if an error occurs during initialization.
+     */
     public RMIClient() throws Exception{
         
     }
 
     // ----------------- Remote methods -----------------
 
+    /**
+     * Notifies the client with a message.
+     *
+     * @param message the message to be notified
+     * @throws RemoteException if a remote communication error occurs
+     */
     public void notify(String message) throws RemoteException{
         System.out.println("Client " + id + " received: " + message);
     }
@@ -33,6 +48,9 @@ public class RMIClient extends UnicastRemoteObject implements RMIClientsInterfac
 
     // ----------------- Local methods -----------------
 
+    /**
+     * Displays the menu options for the user.
+     */
     private void menu() {
         System.out.println("-----Menu-----");
         System.out.println("1- Index a new URL");
@@ -44,6 +62,13 @@ public class RMIClient extends UnicastRemoteObject implements RMIClientsInterfac
         System.out.println("Enter the desired option: ");
     }
 
+    /**
+     * Checks if the input from the scanner is an integer.
+     * If the input is not an integer, it prompts the user to enter an integer.
+     *
+     * @param sc the Scanner object used to read user input
+     * @return the integer value entered by the user
+     */
     private static int checkInt(Scanner sc) {
         while (!sc.hasNextInt()) {    
             System.out.println("You must enter an integer: ");
@@ -53,6 +78,11 @@ public class RMIClient extends UnicastRemoteObject implements RMIClientsInterfac
         return num;
     }
 
+    /**
+     * Prints the contents of a list of strings, with pagination.
+     * 
+     * @param res the list of strings to be printed
+     */
     private void printPage(List<String> res) {
         String clientInput = "";
         int i = 0;
@@ -69,6 +99,15 @@ public class RMIClient extends UnicastRemoteObject implements RMIClientsInterfac
         }
     }
 
+    /**
+     * Starts the RMIClient by displaying a menu and processing user input until the user chooses to exit.
+     * 
+     * @param gateway the RMIGatewayClientsInterface object used for communication with the server
+     * @throws RemoteException if a remote error occurs during communication with the server
+     * @throws NotBoundException if the specified name is not currently bound
+     * @throws MalformedURLException if the URL is not a valid URL
+     * @throws InterruptedException if the current thread is interrupted while waiting
+     */
     public void start(RMIGatewayClientsInterface gateway) throws RemoteException, NotBoundException, MalformedURLException, InterruptedException {
         int option;
         do {
@@ -79,6 +118,14 @@ public class RMIClient extends UnicastRemoteObject implements RMIClientsInterfac
         } while (option != 5);
     }
 
+    /**
+     * Performs different actions based on the provided option.
+     *
+     * @param gateway The RMIGatewayClientsInterface object used for communication with the server.
+     * @param option The option selected by the user.
+     * @throws RemoteException If a remote communication error occurs.
+     * @throws InterruptedException If the thread is interrupted while waiting.
+     */
     public void options(RMIGatewayClientsInterface gateway, int option) throws RemoteException, InterruptedException {
         switch(option) {
             case 1:
@@ -135,6 +182,12 @@ public class RMIClient extends UnicastRemoteObject implements RMIClientsInterfac
         }
     }
 
+    /**
+        * The main method of the RMIClient class.
+        * It is the entry point of the program.
+        *
+        * @param args The command line arguments passed to the program.
+        */
     public static void main(String[] args) {
         
         String registryName;

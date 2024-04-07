@@ -1,3 +1,9 @@
+/**
+ * This class represents the RMIGateway, which acts as a remote gateway for clients to interact with the system.
+ * It implements the RMIGatewayDownloadersInterface, RMIGatewayBarrelsInterface, and RMIGatewayClientsInterface interfaces.
+ * The RMIGateway is responsible for managing the URL queue, interacting with barrels, and performing search and query operations.
+ * It also keeps track of response times for each barrel.
+ */
 package rmi;
 
 import java.io.FileInputStream;
@@ -22,6 +28,28 @@ import java.util.concurrent.atomic.AtomicInteger;
 import barrels.RMIBarrelsInterface;
 
 
+/**
+ * The RMIGateway class represents a gateway for remote method invocation (RMI) in a distributed system.
+ * It implements the RMIGatewayDownloadersInterface, RMIGatewayBarrelsInterface, and RMIGatewayClientsInterface interfaces.
+ * This class is responsible for managing the URL queue, barrels, and client subscriptions.
+ * It provides methods for adding URLs to the queue, checking if a URL has been queued or indexed, retrieving the next URL from the queue,
+ * generating message IDs, subscribing and unsubscribing barrels, retrieving the list of barrels, searching for URLs by keywords,
+ * querying for pages that link to a specific URL, retrieving the top searched terms, and more.
+ * 
+ * This class extends the UnicastRemoteObject class to enable remote method invocation.
+ * It also uses various data structures such as LinkedBlockingQueue, HashMap, and List to store and manage data.
+ * 
+ * Note: This class assumes that the RMIBarrelsInterface interface is available and properly implemented by the barrels.
+ * 
+ * @see RMIGatewayDownloadersInterface
+ * @see RMIGatewayBarrelsInterface
+ * @see RMIGatewayClientsInterface
+ */
+/**
+ * The RMIGateway class represents the gateway for the RMI-based search engine system.
+ * It implements the RMIGatewayDownloadersInterface, RMIGatewayBarrelsInterface, and RMIGatewayClientsInterface interfaces.
+ * This class is responsible for managing the URL queue, interacting with barrels, and performing search and query operations.
+ */
 public class RMIGateway extends UnicastRemoteObject implements RMIGatewayDownloadersInterface, RMIGatewayBarrelsInterface, RMIGatewayClientsInterface {
 
     private int linkSearchDepth = 0, linkSearchCount = 0;
@@ -30,31 +58,59 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayDownloa
     private HashMap<Integer, RMIBarrelsInterface> barrels = new HashMap<>();
     private Map<RMIBarrelsInterface, Long> responseTimes = new HashMap<>();
 
+    /**
+     * Represents an RMIGateway object.
+     * This class provides a gateway for RMI communication.
+     */
     public RMIGateway() throws RemoteException {
         urlQueue = new LinkedBlockingQueue<>();
     }
 
+    /**
+     * Adds a URL to the URL queue for indexing.
+     * This method is synchronized to ensure thread safety.
+     * 
+     * @param url the URL to be added to the queue
+     * @throws InterruptedException if the thread is interrupted while waiting to add the URL to the queue
+     */
     public synchronized void clientAddIndexerUrl(String url) throws InterruptedException {
         
         urlQueue.put(url);
         linkSearchCount = 0; // Reset the linkSearchCount, since the client is adding a new URL to be recursively indexed
     }
 
+    /**
+     * Adds a URL to the URL queue for processing.
+     * 
+     * @param url the URL to be added
+     * @throws InterruptedException if the thread is interrupted while waiting to add the URL
+     */
     public synchronized void addUrl(String url) throws InterruptedException { 
         // synchronized is used to guarantee that the add url and checking if the URL is already there are atomic operations
         
         if(linkSearchCount > linkSearchDepth) return;
-        // if (!wasUrlQueued(url)) {
             
-            urlQueue.put(url);
-            linkSearchCount++;
-        // }
+        urlQueue.put(url);
+        linkSearchCount++;
     }
 
+    /**
+     * Checks if a given URL was queued for processing.
+     *
+     * @param url the URL to check
+     * @return true if the URL was queued, false otherwise
+     */
     public boolean wasUrlQueued(String url) {
         return urlQueue.contains(url);
     }
 
+    /**
+     * Checks if a given URL has been indexed by any of the RMIBarrelsInterface instances.
+     *
+     * @param url the URL to check
+     * @return true if the URL has been indexed, false otherwise
+     * @throws RemoteException if a remote exception occurs while checking the URL
+     */
     public boolean wasUrlIndexed(String url) throws RemoteException {
         try{
             for (RMIBarrelsInterface barrel : barrels.values()) {
@@ -67,26 +123,56 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayDownloa
         }
         return false;
     }
+
+    /**
+     * Retrieves the next URL from the URL queue.
+     *
+     * @return the next URL in the queue
+     * @throws InterruptedException if the thread is interrupted while waiting for the next URL
+     */
     public String getNextUrl() throws InterruptedException {
         return urlQueue.take();
     }
 
+    /**
+     * Returns a new message ID.
+     *
+     * @return the new message ID
+     */
     public int getNewMessageId() {
         return messageId.getAndIncrement(); // This method is atomic
     }
 
+    /**
+     * Subscribes a barrel with the given ID to the RMIGateway.
+     * 
+     * @param id the ID of the barrel to subscribe
+     * @param barrel the RMIBarrelsInterface object representing the barrel
+     * @throws RemoteException if a remote communication error occurs
+     */
     public void barrelSubscribe(int id, RMIBarrelsInterface barrel) throws RemoteException{
 
         barrels.put(id, barrel);
         System.out.println(LocalDateTime.now() + " : Barrel " + id + " subscribed.");
     }
 
+    /**
+     * Removes a barrel with the specified ID from the list of subscribed barrels.
+     * 
+     * @param id the ID of the barrel to unsubscribe
+     * @throws RemoteException if a remote communication error occurs
+     */
     public void barrelUnsubscribe(int id) throws RemoteException {
 
         barrels.remove(id);
         System.out.println(LocalDateTime.now() +" : Barrel " + id + " unsubscribed.");
     }
    
+    /**
+     * Returns a random barrel from the barrels map.
+     *
+     * @return The key of a randomly selected barrel.
+     */
     private int getRandomBarrel() {
         Random rand = new Random();
         List<Integer> keys = new ArrayList<Integer>(barrels.keySet());
@@ -94,6 +180,12 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayDownloa
         return randomKey;
     }
 
+    /**
+     * Retrieves a list of barrel IDs.
+     * 
+     * @return A list of barrel IDs.
+     * @throws RemoteException if a remote communication error occurs.
+     */
     public List<Integer> getBarrelsList() throws RemoteException {
         List<Integer> list = new ArrayList<>();
         try {
@@ -106,6 +198,14 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayDownloa
         return list;
     }
 
+    /**
+     * Searches for URLs containing the given keywords and retrieves their page titles and short quotes.
+     * 
+     * @param keywords           the keywords to search for
+     * @param shortQuoteCharLimit the character limit for the short quote
+     * @return                   a list of search results, each containing the page title, URL, and short quote
+     * @throws RemoteException   if a remote communication error occurs
+     */
     public List<String> searchByTerms(String keywords, int shortQuoteCharLimit) throws RemoteException {
 
         int barrelId = getRandomBarrel();
@@ -159,6 +259,13 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayDownloa
         return groupResults(results);
     }
 
+    /**
+     * Groups the given list of results into pages, with each page containing 10 results.
+     * Adds a page header for every 10 results.
+     *
+     * @param results the list of results to be grouped
+     * @return a new list of grouped results
+     */
     private List<String> groupResults(List<String> results) {
         int i = 0;
         List<String> groupedResults = new ArrayList<>();
@@ -176,6 +283,13 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayDownloa
         return groupedResults;
     }
     
+    /**
+     * Performs a consult operation by querying a random RMIBarrelsInterface object for pages that link to the specified URL.
+     * 
+     * @param urlConsult the URL to be queried
+     * @return a list of strings representing the query results, or an empty list if no results were found
+     * @throws RemoteException if a remote communication error occurs while querying
+     */
     public List<String> consult(String urlConsult) throws RemoteException {
 
         int barrelId = getRandomBarrel();
@@ -231,6 +345,12 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayDownloa
         return results;
     }
 
+    /**
+     * Retrieves the top searched terms from all the RMIBarrelsInterface instances.
+     * 
+     * @return a list of strings representing the top searched terms and their frequencies.
+     * @throws RemoteException if a remote exception occurs during the retrieval of the searched terms.
+     */
     public List<String> topSearches() throws RemoteException {
         Map<String, Integer> mergedTerms = new HashMap<>();
         ArrayList<String> topTerms = new ArrayList<>();
@@ -270,6 +390,12 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayDownloa
         return topTerms;
     }
 
+    /**
+     * Retrieves the mean response time for each barrel.
+     * 
+     * @return A list of strings representing the mean response time for each barrel.
+     * @throws RemoteException If a remote communication error occurs.
+     */
     public List<String> getMeanResponseTimeByBarrel() throws RemoteException {
         List<String> responseTimesList = new ArrayList<>();
         for (RMIBarrelsInterface barrel : barrels.values()) {
@@ -280,6 +406,13 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayDownloa
         return responseTimesList;
     }
 
+    /**
+     * Merges the contents of map2 into map1 by adding the values of common keys.
+     * If a key exists in both maps, the corresponding values are added together.
+     *
+     * @param map1 the first map to merge into
+     * @param map2 the second map to merge from
+     */
     private void mergeMap(Map<String, Integer> map1, Map<String, Integer> map2) {
         for (Map.Entry<String, Integer> entry : map2.entrySet()) {
             String termo = entry.getKey();
@@ -288,9 +421,24 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayDownloa
         }
     }
 
+    /**
+     * Adds a response time to the responseTimes map.
+     * 
+     * @param barrel the RMIBarrelsInterface object representing the barrel.
+     * @param a the response time to be added.
+     * @throws RemoteException if a remote communication error occurs.
+     */
     public void addResponseTimeList(RMIBarrelsInterface barrel, Long a) throws RemoteException {
         responseTimes.put(barrel,a);
     }
+    
+    /**
+     * The main method is the entry point of the RMIGateway application.
+     * It loads the configurations from a properties file, creates the necessary RMI registries,
+     * and adds a default URL to the queue if provided.
+     *
+     * @param args The command line arguments. The first argument should be the path to the properties file.
+     */
     public static void main(String args[]) {
 
         int gatewayDownloadersPort, gatewayBarrelsPort, gatewayClientsPort;
