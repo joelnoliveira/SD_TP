@@ -327,8 +327,6 @@ public class Downloader {
                             
                             urlData.links = coupleLinks.toString().toLowerCase().replace("\n", " ");
                             
-                            // TODO send data by RELIABLE MULTICAST to the Index Storage Barrels
-                            
                             // ------------------------- Multicast -------------------------
                             urlData.messageId = gateway.getNewMessageId(); // Increment the message id
                             // TODO: maybe add checksum to the message

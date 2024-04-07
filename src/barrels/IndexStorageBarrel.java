@@ -696,7 +696,7 @@ public class IndexStorageBarrel extends UnicastRemoteObject implements RMIBarrel
 
             message = toDownloaderType + "\n" + downloaderId + "\n" + messageId;
             toBeSentMessages.put(message); // add the message to the toBeSentMessages queue
-            // TODO fazer o downloader processar o ack
+            
             System.out.println(LocalDateTime.now() + " : the message with the id " + messageId + " was saved in disk");
 
         } catch (Exception e) {
