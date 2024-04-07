@@ -325,7 +325,7 @@ public class Downloader {
                                 // System.out.println(link.text() + "\n" + link.attr("abs:href") + "\n");
                             }
                             
-                            urlData.links = coupleLinks.toString().toLowerCase().replace("\n", " ");
+                            urlData.links = coupleLinks.toString().replace("\n", " ");
                             
                             // ------------------------- Multicast -------------------------
                             urlData.messageId = gateway.getNewMessageId(); // Increment the message id

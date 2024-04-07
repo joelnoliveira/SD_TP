@@ -16,7 +16,7 @@ import java.rmi.NotBoundException;
 public class RMIClient extends UnicastRemoteObject implements RMIClientsInterface{
 
     private Scanner sc = new Scanner(System.in);
-    private int id;
+    private int id, characterLimit;
     private RMIGatewayClientsInterface gateway;
 
     public RMIClient() throws Exception{
@@ -92,7 +92,7 @@ public class RMIClient extends UnicastRemoteObject implements RMIClientsInterfac
             case 2:
                 System.out.println("Enter the search terms:");
                 String keywords = sc.nextLine().toLowerCase();
-                List<String> res = gateway.searchByTerms(keywords);
+                List<String> res = gateway.searchByTerms(keywords, characterLimit);
                 System.out.println("Search result: ");
                 printPage(res);
                 break;
@@ -102,9 +102,7 @@ public class RMIClient extends UnicastRemoteObject implements RMIClientsInterfac
                 String urlConsult = sc.nextLine();
                 List<String> res1 = gateway.consult(urlConsult);
                 System.out.println("Query result: ");
-                for (String r : res1) {
-                    System.out.println(r);
-                }
+                printPage(res1);
                 break;
             case 4:
                 // Query real-time updated administration page
@@ -117,9 +115,9 @@ public class RMIClient extends UnicastRemoteObject implements RMIClientsInterfac
                 List<Integer> barrels = gateway.getBarrelsList();
                 System.out.println("Connected barrels: ");
                 for (int b : barrels) {
-                    System.out.println("Barrel - " + b);
+                    System.out.println("Barrel" + b);
                 }
-                System.out.println("Response time: ");
+                System.out.println("Mean Response time: ");
                 List<String> res3 = gateway.getMeanResponseTimeByBarrel();
                 for (String r : res3) {
                     System.out.println(r);
@@ -150,6 +148,8 @@ public class RMIClient extends UnicastRemoteObject implements RMIClientsInterfac
             prop.load(input);
 
             registryName = prop.getProperty("registryName");
+            client.characterLimit = Integer.parseInt(prop.getProperty("characterLimit")); // characterLimit for short quote
+
 
             client.gateway = (RMIGatewayClientsInterface) Naming.lookup(registryName);
 

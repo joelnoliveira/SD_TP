@@ -34,12 +34,6 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayDownloa
         urlQueue = new LinkedBlockingQueue<>();
     }
 
-    // private boolean wasUrlQueued(String url) {
-            // TODO: FURUKAWA Implement this method
-            // Maybe should be implemented by going to one barrel and checking if the URL is already there
-            // This method should be used inside the addUrl method, in case the URL is already in the queue or in the barrels, then there is no need to add it again
-    // }
-
     public synchronized void clientAddIndexerUrl(String url) throws InterruptedException {
         
         urlQueue.put(url);
@@ -84,7 +78,6 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayDownloa
     public void barrelSubscribe(int id, RMIBarrelsInterface barrel) throws RemoteException{
 
         barrels.put(id, barrel);
-        barrel.sayHI();
         System.out.println(LocalDateTime.now() + " : Barrel " + id + " subscribed.");
     }
 
@@ -113,7 +106,7 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayDownloa
         return list;
     }
 
-    public List<String> searchByTerms(String keywords) throws RemoteException {
+    public List<String> searchByTerms(String keywords, int shortQuoteCharLimit) throws RemoteException {
 
         int barrelId = getRandomBarrel();
         RMIBarrelsInterface barrel = barrels.get(barrelId);
@@ -137,7 +130,7 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayDownloa
                 try {
                     // Get the page title and short quote for the URL
                     String pageTitle = barrel.getPageTitle(url);
-                    String shortQuote = barrel.getShortQuote(url);
+                    String shortQuote = barrel.getShortQuote(url, shortQuoteCharLimit);
                     // Add the page title, URL, and short quote to the results list
                     results.add(pageTitle + " - " + url + "\n" + shortQuote + "\n");
                 } catch (RemoteException e) {
@@ -282,7 +275,7 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayDownloa
         for (RMIBarrelsInterface barrel : barrels.values()) {
             long times = responseTimes.get(barrel);
             int barrelId = barrel.getBarrelID();
-            responseTimesList.add("Barrel - " + barrelId + "-" + times + "ms");
+            responseTimesList.add("Barrel" + barrelId + " - " + times + " ms");
         }
         return responseTimesList;
     }
@@ -319,6 +312,7 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayDownloa
 
             defaultURL = prop.getProperty("defaultURL");
             gateway.linkSearchDepth = Integer.parseInt(prop.getProperty("linkSearchDepth"));
+
             System.out.println(LocalDateTime.now() + " : Configurations sucessfully loaded!");
             
             try {

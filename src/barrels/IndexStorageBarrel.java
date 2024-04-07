@@ -80,7 +80,7 @@ public class IndexStorageBarrel extends UnicastRemoteObject implements RMIBarrel
     }
 
     // Messages
-    private Map<Integer, String> messagesMap = new HashMap<>(); // The map that will store the URLData string messages received from the downloaders during a certain length, so others barrels can recover lost messages
+    private Map<Integer, String> messagesMap = new HashMap<>(); // The map that will store the URLData string messages received from the downloaders, so others barrels can recover lost messages
     private Map<Integer, String> urlMap = new HashMap<>(); // Makes the correspondence between a number (aka doucument id) and a url, even tough the processed data is identified by url, the index will help save space when regestering for each url the links that point to it
     private Map<String, URL> urlDataMap = new HashMap<>(); // Makes the correspondence between a url and its data (the URLData object)
     private Map<String, HashSet<Integer>> index = new HashMap<>(); // makes the correspondence between a word and the urls that contain it
@@ -96,9 +96,6 @@ public class IndexStorageBarrel extends UnicastRemoteObject implements RMIBarrel
     private final Semaphore diskSemaphore = new Semaphore(1);
 
     // ---------------------- Remote methods ----------------------
-    public void sayHI() throws RemoteException{
-        System.out.println("HI");
-    }
 
     public boolean hasURL(String url) throws RemoteException{
         // Check if the urlDataMap contains the given URL
@@ -117,11 +114,12 @@ public class IndexStorageBarrel extends UnicastRemoteObject implements RMIBarrel
                 termCounts.merge(term, 1, Integer::sum);
             }
         }
+
         // Initialize a HashSet to store URLs
         HashSet<String> urls = new HashSet<String>();
-        // Flag to track if it's the first term in the loop
-        boolean firstTerm = true;
+
         // Iterate over each term in the termsList
+
         for (String term : termsList) {
             // Retrieve the set of URLs associated with the current term from the index
             HashSet<Integer> termURLsIndexes = index.get(term);
@@ -139,13 +137,12 @@ public class IndexStorageBarrel extends UnicastRemoteObject implements RMIBarrel
             }
             // If it's the first term, add all URLs associated with the first term to the urls set
             // Otherwise, retain only the common URLs between the current set and the set of URLs associated with the previous term
-            if (firstTerm) {
+            if (urls.isEmpty()) {
                 urls.addAll(termURLs);
-                firstTerm = false;
             } else {
                 urls.retainAll(termURLs);
             }
-            System.out.println(urls);
+            //System.out.println(urls);
         }
         // Return a sorted set of URLs by page links
         return getSortedByPageLinks(urls);
@@ -155,10 +152,14 @@ public class IndexStorageBarrel extends UnicastRemoteObject implements RMIBarrel
         // Initialize a HashMap to store URLs grouped by relevance
         HashMap<Integer, ArrayList<String>> notSortedURLs = new HashMap<Integer, ArrayList<String>>();
 
+        URL urlData;
         // Sort URLs by relevance
         for (String url : termURLs) {
-            int rel = urlDataMap.get(url).relevance;
-            System.out.println(rel);
+            if((urlData = urlDataMap.get(url)) == null){
+                continue;
+            }
+            int rel = urlData.relevance;
+            
             if (!notSortedURLs.containsKey(rel)) {
                 notSortedURLs.put(rel, new ArrayList<String>());
             }
@@ -173,7 +174,6 @@ public class IndexStorageBarrel extends UnicastRemoteObject implements RMIBarrel
     
         // Get the keys (relevance values) in descending order
         List<Integer> keys = new ArrayList<>(sortedURLs.keySet());
-        Collections.reverse(keys);
     
         // Add URLs to the sorted set in descending relevance order
         for (Integer key : keys) {
@@ -186,7 +186,7 @@ public class IndexStorageBarrel extends UnicastRemoteObject implements RMIBarrel
         return sortedURLsSet;
     }
 
-    public String getShortQuote(String url)  throws RemoteException{
+    public String getShortQuote(String url, int characterLimit)  throws RemoteException{
         // Retrieve URL data from the map based on the provided URL
         URL urlData = urlDataMap.get(url);
         // Check if URL data is found
@@ -201,8 +201,8 @@ public class IndexStorageBarrel extends UnicastRemoteObject implements RMIBarrel
             // If no text content is available, return an empty string
             return "";
         }
-        // Extract a short quote from the text content, limited to 40 characters or the length of the text if shorter
-        String quote = text.substring(0, Math.min(40, text.length())) + "...";
+        // Extract a short quote from the text content, limited to characterLimit characters or the length of the text if shorter
+        String quote = text.substring(0, Math.min(characterLimit, text.length())) + "...";
         // Return the short quote
         return quote;
     }
@@ -250,7 +250,6 @@ public class IndexStorageBarrel extends UnicastRemoteObject implements RMIBarrel
         Map<String, Integer> topTerms = new LinkedHashMap<>();
         for (int i = 0; i < sortedTerms.size(); i++) {
             topTerms.put(sortedTerms.get(i).getKey(), sortedTerms.get(i).getValue());
-            System.out.println("Term: " + sortedTerms.get(i).getKey() + " Count: " + sortedTerms.get(i).getValue());
         }
         return topTerms;
     }
@@ -379,111 +378,116 @@ public class IndexStorageBarrel extends UnicastRemoteObject implements RMIBarrel
 
                 // TODO add syncronized to were its needed to use threads
 
-                // Process the data
-                // Get the URLData object from the message
-                URLData urlData = new URLData();
-                StringTokenizer tokens = new StringTokenizer(messagesMap.get(messageId), "\n"); // use only "\n" as delimiter
-                System.out.println(LocalDateTime.now() + " : The message with the id " + messageId + " is being processed");
-                tokens.nextToken(); // Skip the message type
-                tokens.nextToken(); // Skip the downloaderId
-                tokens.nextToken(); // Skip the messageId
-                urlData.pageURL = tokens.nextToken();
-                urlData.title = tokens.nextToken();
-                urlData.textCitation = tokens.nextToken();
-                urlData.tokens = tokens.nextToken();
-                if(tokens.hasMoreTokens())urlData.links = tokens.nextToken();
-                else {
-                    urlData.links = urlData.tokens;
-                    urlData.tokens = urlData.textCitation;
-                    urlData.textCitation = ""; // the textCitation is empty
-                }
+                try(Scanner scanner = new Scanner(messagesMap.get(messageId))){
 
-                id = urlMap.size(); // Document id
-                tokens = new StringTokenizer(urlData.links);
+                    // Process the data
+                    // Get the URLData object from the message
+                    URLData urlData = new URLData();
+                    // StringTokenizer tokens = new StringTokenizer(messagesMap.get(messageId), "\n"); // use only "\n" as delimiter
+                    System.out.println(LocalDateTime.now() + " : The message with the id " + messageId + " is being processed");
+                    scanner.nextLine(); // Skip the message type
+                    scanner.nextLine(); // Skip the downloaderId
+                    scanner.nextLine(); // Skip the messageId
+                    urlData.pageURL = scanner.nextLine();
+                    urlData.title = scanner.nextLine();
+                    urlData.textCitation = scanner.nextLine();
+                    urlData.tokens = scanner.nextLine();
+                    urlData.links = scanner.nextLine();
+                    // else {
+                    //     urlData.links = urlData.tokens;
+                    //     urlData.tokens = urlData.textCitation;
+                    //     urlData.textCitation = ""; // the textCitation is empty
+                    // }
 
-                String link;
+                    id = urlMap.size(); // Document id
+                    StringTokenizer tokens = new StringTokenizer(urlData.links);
 
-                // Check if the url is already in the urlDataMap
-                if(urlDataMap.get(urlData.pageURL) == null){ // if it is not
+                    String link;
 
-                    // create a new URL object
-                    url = new URL();
-                    url.id = currentPageId = id++;
-                    url.relevance = 0; // the relevance is 0 because the url is being added for the first time
-                    url.title = urlData.title;
-                    url.textCitation = urlData.textCitation;
-                    urlMap.put(id, urlData.pageURL); // add the page url to the urlMap
-                    urlDataMap.put(urlData.pageURL, url); // add the page url to the urlDataMap
-
-                }else{// the url is already in the urlDataMap
-
-                    url = urlDataMap.get(urlData.pageURL);
-                    currentPageId = urlDataMap.get(urlData.pageURL).id;
-                    
-                    // Check if the title and by consequence the textCitation are there, if not add them
-                    if(url.title == null){
-                        url.title = urlData.title;
-                        url.textCitation = urlData.textCitation;
-                    }
-                }
-
-                while(tokens.hasMoreTokens()){ // process the links
-
-                    link = tokens.nextToken();
-
-                    // check if the referenced link is already in the urlDataMap and by consequence in the urlMap
-                    if(urlDataMap.get(link) == null){ // if it is not
+                    // Check if the url is already in the urlDataMap
+                    if(urlDataMap.get(urlData.pageURL) == null){ // if it is not
 
                         // create a new URL object
                         url = new URL();
-                        url.relevance = 1; // the relevance is 1 because the link is being added for the first time, and because it was referenced by the current page
-                        urlMap.put(id++, link); // add the link to the urlMap
-                        url.links.add(currentPageId); //  add the id of the referencing page to the URL object
-                        urlDataMap.put(link, url); // add the link to the urlDataMap
+                        currentPageId = id++;
+                        url.id = currentPageId;
+                        url.relevance = 0; // the relevance is 0 because the url is being added for the first time
+                        url.title = urlData.title;
+                        url.textCitation = urlData.textCitation;
+                        urlMap.put(id, urlData.pageURL); // add the page url to the urlMap
+                        urlDataMap.put(urlData.pageURL, url); // add the page url to the urlDataMap
 
-                    }else{// the link is already in the urlDataMap
+                    }else{// the url is already in the urlDataMap
 
-                        url = urlDataMap.get(link);
-
-                        // try to add the id of the referencing page to the URL object
-                        if(url.links.add(currentPageId)==true)url.relevance++; // increment the relevance, because the link was referenced by the current page
-                        // else the link was already referenced by the current page (repeated link in the page)                        
+                        url = urlDataMap.get(urlData.pageURL);
+                        currentPageId = url.id;
+                        
+                        // Check if the title and by consequence the textCitation are there, if not add them
+                        if(url.title == null){
+                            url.title = urlData.title;
+                            url.textCitation = urlData.textCitation;
+                        }
                     }
-                }
 
-                // Process the tokens and textCitation words
-                tokens = new StringTokenizer(urlData.tokens);
+                    while(tokens.hasMoreTokens()){ // process the links
 
-                String word;
+                        link = tokens.nextToken();
 
-                while(tokens.hasMoreTokens()){ // process the tokens
+                        // check if the referenced link is already in the urlDataMap and by consequence in the urlMap
+                        if(urlDataMap.get(link) == null){ // if it is not
 
-                    word = tokens.nextToken();
+                            // create a new URL object
+                            url = new URL();
+                            url.id = id;
+                            url.relevance = 1; // the relevance is 1 because the link is being added for the first time, and because it was referenced by the current page
+                            urlMap.put(id++, link); // add the link to the urlMap
+                            url.links.add(currentPageId); //  add the id of the referencing page to the URL object
+                            urlDataMap.put(link, url); // add the link to the urlDataMap
 
-                    // Check if the word is already in the index
-                    if(index.get(word) == null){ // if it is not
+                        }else{// the link is already in the urlDataMap
 
-                        HashSet<Integer> urls = new HashSet<>();
-                        urls.add(currentPageId);
-                        index.put(word, urls);
+                            url = urlDataMap.get(link);
 
-                    }else index.get(word).add(currentPageId); // the word is already in the index
-                }
+                            // try to add the id of the referencing page to the URL object
+                            if(url.links.add(currentPageId)==true)url.relevance++; // increment the relevance, because the link was referenced by the current page
+                            // else the link was already referenced by the current page (repeated link in the page)                        
+                        }
+                    }
 
-                tokens = new StringTokenizer(urlData.textCitation);
+                    // Process the tokens and textCitation words
+                    tokens = new StringTokenizer(urlData.tokens);
 
-                while(tokens.hasMoreTokens()){ // process the textCitation
+                    String word;
 
-                    word = tokens.nextToken();
+                    while(tokens.hasMoreTokens()){ // process the tokens
 
-                    // Check if the word is already in the index
-                    if(index.get(word) == null){ // if it is not
+                        word = tokens.nextToken();
 
-                        HashSet<Integer> urls = new HashSet<>();
-                        urls.add(currentPageId);
-                        index.put(word, urls);
+                        // Check if the word is already in the index
+                        if(index.get(word) == null){ // if it is not
 
-                    }else index.get(word).add(currentPageId); // the word is already in the index
+                            HashSet<Integer> urls = new HashSet<>();
+                            urls.add(currentPageId);
+                            index.put(word, urls);
+
+                        }else index.get(word).add(currentPageId); // the word is already in the index
+                    }
+
+                    tokens = new StringTokenizer(urlData.textCitation);
+
+                    while(tokens.hasMoreTokens()){ // process the textCitation
+
+                        word = tokens.nextToken();
+
+                        // Check if the word is already in the index
+                        if(index.get(word) == null){ // if it is not
+
+                            HashSet<Integer> urls = new HashSet<>();
+                            urls.add(currentPageId);
+                            index.put(word, urls);
+
+                        }else index.get(word).add(currentPageId); // the word is already in the index
+                    }
                 }
             }
         } catch (Exception e) {
@@ -515,7 +519,6 @@ public class IndexStorageBarrel extends UnicastRemoteObject implements RMIBarrel
         try {
             if (!messagesMap.isEmpty()) {
                 int maxKey = Collections.max(messagesMap.keySet());
-                System.out.println("Maximum Key: " + maxKey);
 
                 message = messagesMap.get(maxKey);
                 toBeSentMessages.put(message);
