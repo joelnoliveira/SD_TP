@@ -41,7 +41,7 @@ public class Downloader {
     private LinkedBlockingQueue<String> receivedMessages = new LinkedBlockingQueue<>();
     private LinkedBlockingQueue<String> toBeSentMessages = new LinkedBlockingQueue<>();
     private LinkedBlockingQueue<String> missingAcksQueue = new LinkedBlockingQueue<>();
-    private HashMap<Integer, Boolean> ackedMessages = new HashMap<>();
+    private HashMap<Integer, String> messages = new HashMap<>(); // messages that have been sent to the barrels, when ack is received, remove from the list
 
     private void receiver(){
 
@@ -53,7 +53,7 @@ public class Downloader {
                 DatagramPacket packet = new DatagramPacket(bytes, bytes.length);
                 socket.receive(packet);
                 string = new String(packet.getData(), 0, packet.getLength());
-                System.out.println("Received: " + string);
+                // System.out.println("Received: " + string);
                 receivedMessages.put(string);
 
             } catch (Exception e){
@@ -85,8 +85,10 @@ public class Downloader {
                     int messageId = Integer.parseInt(st.nextToken());
 
                     if(downloaderId == this.downloaderId){
-                        ackedMessages.put(messageId, true);
-                    }
+                        //remove the message from the list of messages that have been sent to the barrels
+                        messages.remove(messageId);
+                        System.out.println(LocalDateTime.now() + " : Acknowledgment received for the message with the id " + messageId);
+                    }// else the message is not from this downloader, so ignore it
                 }
 
             } catch (InterruptedException e) {
@@ -95,74 +97,84 @@ public class Downloader {
         }
     }
 
-    // private void acksChecker(){
+    private void acksChecker(){
 
-    //     System.out.println(LocalDateTime.now() + " : Acks Checker thread started!");
+        System.out.println(LocalDateTime.now() + " : Acks Checker thread started!");
 
-    //     int messageId;
-    //     long timeStamp, timeElapsed;
-    //     String message;
+        int messageId;
+        long timeStamp, timeElapsed;
+        String message;
 
-    //     while (true){
+        while (true){
 
-    //         try {
+            try {
 
-    //             message = missingAcksQueue.take(); // pop a missing ack from the queue
-    //             // separate the timeStamp from the messageId
+                message = missingAcksQueue.take(); // pop a missing ack from the queue
+                // separate the timeStamp from the messageId
 
-    //             // separate the timestamp and the message id
-    //             String[] tokens = message.split(" ");
-    //             timeStamp = Long.parseLong(tokens[0]);
-    //             messageId = Integer.parseInt(tokens[1]);
+                // separate the timestamp and the message id
+                String[] tokens = message.split(" ");
+                timeStamp = Long.parseLong(tokens[0]);
+                messageId = Integer.parseInt(tokens[1]);
 
-    //             if(!ackedMessages.containsKey(messageId)){ // if the message still hasn't arrived
+                if(messages.containsKey(messageId)){ // if the acknoledgment still hasn't arrived, because the message is still in the messages list
 
-    //                 // check elapsed time
-    //                 if((timeElapsed = (System.currentTimeMillis() - timeStamp))/100 >= ackReturnTimer/100){ // if the waiting time has passed
+                    // check elapsed time
+                    if((timeElapsed = (System.currentTimeMillis() - timeStamp))/100 >= ackReturnTimer/100){ // if the waiting time has passed
         
-    //                     // create a recover request
-    //                     String message = recoveryType + "\n" + barrelId + "\n" + messageId;
-    //                     toBeSentMessages.put(message); // add the message to the toBeSentMessages queue
-    //                     System.out.println(LocalDateTime.now() + " : Recovery Timer expired, the recover request for the message with the id " + messageId + " was added to the toBeSentMessages queue");
+                        toBeSentMessages.put(messages.get(messageId)); // add the message to the toBeSentMessages queue
+                        System.out.println(LocalDateTime.now() + " : The acknlodgemnt timer expired, the message with the id " + messageId + " was added to the toBeSentMessages queue");
 
-    //                     // add the new timestamp and message id to the missingAcksQueue queue so it can be checked again
-    //                     missingAcksQueue.put(System.currentTimeMillis() + " " + messageId);
+                        // add the new timestamp and message id to the missingAcksQueue queue so it can be checked again
+                        missingAcksQueue.put(System.currentTimeMillis() + " " + messageId);
 
-    //                 } else{ // if the waiting time hasn't passed
+                    } else{ // if the waiting time hasn't passed
                         
-    //                     Thread.sleep(ackReturnTimer - timeElapsed);
+                        Thread.sleep(ackReturnTimer - timeElapsed);
 
-    //                     // check if the message has already arrived
-    //                     if(!ackedMessages.containsKey(messageId)){ // if the message still hasn't arrived
+                        // check if the ack has already arrived
+                        if(messages.containsKey(messageId)){ // if the ack still hasn't arrived
         
-    //                         // create a recover request
-    //                         String message = recoveryType + "\n" + barrelId + "\n" + messageId;
-    //                         toBeSentMessages.put(message); // add the message to the toBeSentMessages queue
-    //                         System.out.println(LocalDateTime.now() + " : Recovery Timer expired, the recover request for the message with the id " + messageId + " was added to the toBeSentMessages queue");
+                            toBeSentMessages.put(messages.get(messageId)); // add the message to the toBeSentMessages queue
+                            System.out.println(LocalDateTime.now() + " : Recovery Timer expired, the recover request for the message with the id " + messageId + " was added to the toBeSentMessages queue");
 
-    //                         // add the new timestamp and message id to the missingAcksQueue queue so it can be checked again
-    //                         missingAcksQueue.put(System.currentTimeMillis() + " " + messageId);
-    //                     }// else the message has already arrived
-    //                 }
-    //             }// else the message has already arrived
+                            // add the new timestamp and message id to the missingAcksQueue queue so it can be checked again
+                            missingAcksQueue.put(System.currentTimeMillis() + " " + messageId);
+                        }// else the ack has already arrived
+                    }
+                }// else the ack has already arrived
 
-    //         } catch (InterruptedException e) {
-    //             e.printStackTrace();
-    //         }
-    //     }
-    // }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    }
 
     private void sender(){
 
         byte[] bytes;
+        int messageId;
         String string;
 
         while (true) {
 
             try {
                 string = toBeSentMessages.take();
+
+                messageId = Integer.parseInt(string.split("\n")[2]);
+
+                // check if the message is already in the list of messages that have been sent to the barrels, if not add it
+                if(!messages.containsKey(messageId)){
+
+                    messages.put(messageId, string);
+                    
+                    // add the timestamp and the message id to the missingAcksQueue queue so it can be checked
+                    missingAcksQueue.put(System.currentTimeMillis() + " " + messageId);
+                }
+
+
                 bytes = string.getBytes(); // Convert the object to string and then to bytes and put it in the buffer
-                System.out.println("Sending: " + string);
+                // System.out.println("Sending: " + string);
                 // Send a message
                 DatagramPacket packet = new DatagramPacket(bytes, bytes.length, group, multicastBarrelsPort);
                 socket.send(packet);
@@ -205,6 +217,7 @@ public class Downloader {
             multicastAddress = prop.getProperty("multicastAddress");
             multicastInterface = prop.getProperty("multicastInterface");
             multticastTTL = Integer.parseInt(prop.getProperty("multicastTTL"));
+            downloader.ackReturnTimer = Integer.parseInt(prop.getProperty("ackReturnTimer"));
 
 
             System.out.println(LocalDateTime.now() + " : Configurations sucessfully loaded!");
@@ -237,19 +250,27 @@ public class Downloader {
                     new Thread(() -> {
                         downloader.receiver(); // Recives acks from the Index Storage Barrels
                     }).start();
+                    
+                    new Thread(() -> {
+                        downloader.acksChecker(); // Check if the acks have arrived
+                    }).start();
+
+                    new Thread(() -> {
+                        downloader.messageProcessor(); // Process the received messages
+                    }).start();
                      
                     while (true) {
                         try {//Process the URL
         
-                            System.out.println("-------------------------");
+                            // System.out.println("-------------------------");
         
                             URLData urlData = new URLData();
                             urlData.pageURL = gateway.getNextUrl();
                             urlData.downloaderId = downloader.downloaderId;
                             
-                            System.out.println("Message number: " + urlData.messageId);
+                            // System.out.println("Message number: " + urlData.messageId);
                             
-                            System.out.println("URL: " + urlData.pageURL);
+                            // System.out.println("URL: " + urlData.pageURL);
                             
                             // Process the URL...
                             Document doc = Jsoup.connect(urlData.pageURL).get();
@@ -261,7 +282,7 @@ public class Downloader {
                             string = new String(bytes, 0, limit);
                             
                             urlData.title = string.toLowerCase().replace("\n", " ");
-                            System.out.println("Title: " + urlData.title);
+                            // System.out.println("Title: " + urlData.title);
                             
                             // ------------------------- Text Citation -------------------------
                             
@@ -272,7 +293,7 @@ public class Downloader {
                             
                             urlData.textCitation = string.toLowerCase().replace("\n", " ");
                             
-                            System.out.println("Text Citation: " + urlData.textCitation);
+                            // System.out.println("Text Citation: " + urlData.textCitation);
                             
                             // ------------------------- Tokens -------------------------
                             
@@ -282,7 +303,7 @@ public class Downloader {
                             limit = Math.min(maxBytesTokens, bytes.length);
                             urlData.tokens = new String(bytes, 0, limit);
                             urlData.tokens = urlData.tokens.toLowerCase().replace("\n", " ");
-                            System.out.println("Tokens: " + urlData.tokens);
+                            // System.out.println("Tokens: " + urlData.tokens);
                             
                             
                             // ------------------------- Links -------------------------
@@ -301,7 +322,7 @@ public class Downloader {
                                 coupleLinks.append(link.attr("abs:href"));
                                 
                                 gateway.addUrl(link.attr("abs:href"));
-                                System.out.println(link.text() + "\n" + link.attr("abs:href") + "\n");
+                                // System.out.println(link.text() + "\n" + link.attr("abs:href") + "\n");
                             }
                             
                             urlData.links = coupleLinks.toString().toLowerCase().replace("\n", " ");
