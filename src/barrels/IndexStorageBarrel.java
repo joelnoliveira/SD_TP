@@ -21,8 +21,12 @@ import java.rmi.Naming;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -64,6 +68,8 @@ public class IndexStorageBarrel extends UnicastRemoteObject implements RMIBarrel
     
     private InetAddress group = null;
     private MulticastSocket socket = null;
+
+    RMIGatewayBarrelsInterface gateway;
     // Processed data
     private class URL{
 
@@ -77,7 +83,8 @@ public class IndexStorageBarrel extends UnicastRemoteObject implements RMIBarrel
     private Map<Integer, String> urlMap = new HashMap<>(); // Makes the correspondence between a number (aka doucument id) and a url, even tough the processed data is identified by url, the index will help save space when regestering for each url the links that point to it
     private Map<String, URL> urlDataMap = new HashMap<>(); // Makes the correspondence between a url and its data (the URLData object)
     private Map<String, HashSet<Integer>> index = new HashMap<>(); // makes the correspondence between a word and the urls that contain it
-    
+    private Map<String, Integer> termCounts = new HashMap<>(); // The number of times a term was searched
+
     // bloking queues
     private LinkedBlockingQueue<String> receivedMessages = new LinkedBlockingQueue<>();
     private LinkedBlockingQueue<Integer> dataToProcess = new LinkedBlockingQueue<>();
@@ -91,9 +98,8 @@ public class IndexStorageBarrel extends UnicastRemoteObject implements RMIBarrel
     public void sayHI() throws RemoteException{
         System.out.println("HI");
     }
-
     
-
+    
     // ---------------------- Local methods ----------------------
     public IndexStorageBarrel(int barrelId) throws RemoteException {
         this.barrelId = barrelId;
@@ -119,9 +125,10 @@ public class IndexStorageBarrel extends UnicastRemoteObject implements RMIBarrel
                 file.createNewFile();
             }
             this.oos = append ? new AppendableObjectOutputStream(new FileOutputStream(file, true)) : new ObjectOutputStream(new FileOutputStream(file, true));
-
+            
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {// thread to close the ObjectOutputStream
                 if (oos != null) {
+
                     try {
                         System.out.println(LocalDateTime.now() + " : Shutting down, closing the ObjectOutputStream");
                         oos.close();
@@ -129,6 +136,11 @@ public class IndexStorageBarrel extends UnicastRemoteObject implements RMIBarrel
                         e.printStackTrace();
                     }
                 }
+                    try {
+                        gateway.barrelUnsubscribe(this);
+                    } catch (RemoteException e) {
+                       // ignore, if doesn't work, maybe it never was subscribed
+                    }
             }));
         } catch (IOException e) {
             e.printStackTrace();
@@ -535,8 +547,8 @@ public class IndexStorageBarrel extends UnicastRemoteObject implements RMIBarrel
             // ----------------- Multicast ----------------- and registry
             
             try { // Create a multicast socket
-                RMIGatewayBarrelsInterface gateway = (RMIGatewayBarrelsInterface) Naming.lookup(registryName);
-                gateway.barrelSubscribe(barrel);
+                barrel.gateway = (RMIGatewayBarrelsInterface) Naming.lookup(registryName);
+                barrel.gateway.barrelSubscribe(barrel);
 
                 barrel.socket = new MulticastSocket(barrel.multicastBarrelsPort);
                 System.out.println(LocalDateTime.now() + " : Multicast socket created!");

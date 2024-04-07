@@ -22,9 +22,15 @@ public class RMIClient extends UnicastRemoteObject implements RMIClientsInterfac
         
     }
 
+    // ----------------- Remote methods -----------------
+
     public void notify(String message) throws RemoteException{
         System.out.println("Client " + id + " received: " + message);
     }
+
+    
+
+    // ----------------- Local methods -----------------
 
     private void menu() {
         System.out.println("-----Menu-----");
@@ -35,81 +41,6 @@ public class RMIClient extends UnicastRemoteObject implements RMIClientsInterfac
         System.out.println("5- Exit");
         System.out.println("--------------");
         System.out.println("Enter the desired option: ");
-    }
-
-    private void options(int option){
-
-        try (Scanner sc = new Scanner(System.in)){
-            
-            switch(option) {
-
-                case 1:
-
-                    System.out.println("Enter the URL you want to index:");
-                    // Index the URL
-                    String url = sc.nextLine();
-                    gateway.clientAddIndexerUrl(url);
-                    System.out.println("URL " + url + " indexed successfully");
-                    System.out.println(" ");
-                    break;
-
-                // case 2:
-
-                //     System.out.println("Enter the search terms:");
-                //     String keywords = sc.nextLine().toLowerCase();
-                //     List<String> res = gateway.searchByTerms(keywords, gateway.getRandomBarrel());
-                //     System.out.println("Search result: ");
-                //     printPage(res);
-                //     break;
-
-                // case 3:
-
-                //     System.out.println("Enter the URL you want to query: ");
-                //     // Query the list of pages linking to a specific page
-                //     String urlConsult = sc.nextLine();
-                //     List<String> res1 = gateway.consult(urlConsult, gateway.getRandomBarrel());
-                //     System.out.println("Query result: ");
-                //     for (String r : res1) {
-                //         System.out.println(r);
-                //     }
-                //     break;
-
-                // case 4:
-
-                //     // Query real-time updated administration page
-                //     System.out.println("Real-time updated administration page");
-                //     List<String> res2 = gateway.topSearches();
-                //     System.out.println("Most searched terms: ");
-                //     for (String r : res2) {
-                //         System.out.println(r);
-                //     }
-                //     List<String> barrels = gateway.getBarrelsList();
-                //     System.out.println("Connected barrels: ");
-                //     for (String b : barrels) {
-                //         System.out.println(b);
-                //     }
-                //     System.out.println("Response time: ");
-                //     List<String> res3 = gateway.getMeanResponseTimeByBarrel();
-                //     for (String r : res3) {
-                //         System.out.println(r);
-                //     }
-                //     break;
-
-                case 5:
-
-                    System.out.println("Exiting");
-                    System.out.println("Goodbye!");
-                    System.exit(0);
-                    // Exit
-                    break;
-
-                default:
-                    System.out.println("Invalid option");
-                    // Invalid option
-            }
-        }catch (Exception e){
-            e.printStackTrace();
-        }
     }
 
     public static void main(String[] args) {
@@ -127,8 +58,6 @@ public class RMIClient extends UnicastRemoteObject implements RMIClientsInterfac
             registryName = prop.getProperty("registryName");
 
             client.gateway = (RMIGatewayClientsInterface) Naming.lookup(registryName);
-
-            client.gateway.clientSubscribe(client);
 
             int option;
             String inputString;
@@ -154,57 +83,7 @@ public class RMIClient extends UnicastRemoteObject implements RMIClientsInterfac
                                 System.out.println("URL " + inputString + " indexed successfully");
                                 System.out.println(" ");
                                 break;
-            
-                            // case 2:
-            
-                            //     System.out.println("Enter the search terms:");
-                            //     String keywords = sc.nextLine().toLowerCase();
-                            //     List<String> res = gateway.searchByTerms(keywords, gateway.getRandomBarrel());
-                            //     System.out.println("Search result: ");
-                            //     printPage(res);
-                            //     break;
-            
-                            // case 3:
-            
-                            //     System.out.println("Enter the URL you want to query: ");
-                            //     // Query the list of pages linking to a specific page
-                            //     String urlConsult = sc.nextLine();
-                            //     List<String> res1 = gateway.consult(urlConsult, gateway.getRandomBarrel());
-                            //     System.out.println("Query result: ");
-                            //     for (String r : res1) {
-                            //         System.out.println(r);
-                            //     }
-                            //     break;
-            
-                            // case 4:
-            
-                            //     // Query real-time updated administration page
-                            //     System.out.println("Real-time updated administration page");
-                            //     List<String> res2 = gateway.topSearches();
-                            //     System.out.println("Most searched terms: ");
-                            //     for (String r : res2) {
-                            //         System.out.println(r);
-                            //     }
-                            //     List<String> barrels = gateway.getBarrelsList();
-                            //     System.out.println("Connected barrels: ");
-                            //     for (String b : barrels) {
-                            //         System.out.println(b);
-                            //     }
-                            //     System.out.println("Response time: ");
-                            //     List<String> res3 = gateway.getMeanResponseTimeByBarrel();
-                            //     for (String r : res3) {
-                            //         System.out.println(r);
-                            //     }
-                            //     break;
-            
-                            case 5:
-            
-                                System.out.println("Exiting");
-                                System.out.println("Goodbye!");
-                                System.exit(0);
-                                // Exit
-                                break;
-            
+                            
                             default:
                                 System.out.println("Invalid option");
                                 // Invalid option
