@@ -2,7 +2,6 @@ package rmi;
 
 import java.rmi.Remote;
 import java.rmi.RemoteException;
-import java.util.List;
 
 /**
  * The RMIClientsInterface interface defines the methods that can be invoked by the server to notify clients.

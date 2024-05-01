@@ -7,17 +7,14 @@
 package rmi;
 
 import java.io.FileInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.rmi.RemoteException;
-import java.rmi.registry.Registry;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.server.UnicastRemoteObject;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.InputMismatchException;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -363,7 +360,6 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayDownloa
                     mergeMap(mergedTerms, terms);
                 System.out.println("Merged terms: " + mergedTerms);
                 } catch (RemoteException e) {
-                    // TODO Auto-generated catch block
                     e.printStackTrace();
                 }
             }

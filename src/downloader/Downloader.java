@@ -8,7 +8,6 @@ import java.io.InputStream;
 import java.net.MulticastSocket;
 import java.net.NetworkInterface;
 import java.net.SocketAddress;
-import java.nio.charset.StandardCharsets;
 
 import org.jsoup.nodes.Element;
 import org.jsoup.nodes.Document;
@@ -18,11 +17,9 @@ import java.util.HashMap;
 import java.util.Properties;
 import java.util.StringTokenizer;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.rmi.registry.Registry;
 import java.time.LocalDateTime;
 import java.net.ConnectException;
 import java.rmi.Naming;
-import java.rmi.registry.LocateRegistry;
 import rmi.RMIGatewayDownloadersInterface;
 
 import java.net.DatagramPacket;
@@ -219,7 +216,7 @@ public class Downloader {
 
         int maxBytesTitle, maxBytesCitation, maxBytesTokens, maxBytesLinks, currentBytesLinks;
         int multicastDownloadersPort, multticastTTL;
-        String host, registryName, multicastAddress, multicastInterface;
+        String registryName, multicastAddress, multicastInterface;
         SocketAddress socketAddress = null;
         NetworkInterface networkInterface = null;
         
@@ -231,9 +228,7 @@ public class Downloader {
             Properties prop = new Properties();
             InputStream input = new FileInputStream(args[1]);
             prop.load(input);
-
             
-            host = prop.getProperty("host");
             registryName = prop.getProperty("registryName");
             maxBytesTitle = Integer.parseInt(prop.getProperty("maxBytesTitle"));
             maxBytesCitation = Integer.parseInt(prop.getProperty("maxBytesCitation"));

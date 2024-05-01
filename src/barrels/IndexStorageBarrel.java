@@ -1,6 +1,5 @@
 package barrels;
 
-import java.io.ByteArrayInputStream;
 import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
@@ -10,7 +9,6 @@ import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
-import java.io.RandomAccessFile;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -38,8 +36,6 @@ import java.util.concurrent.Semaphore;
 import downloader.URLData;
 import rmi.RMIGatewayBarrelsInterface;
 
-import java.util.HashSet;
-import java.util.concurrent.LinkedBlockingQueue;
 
 /**
  * The `IndexStorageBarrel` class represents a barrel that stores and manages indexed data.
@@ -67,15 +63,12 @@ public class IndexStorageBarrel extends UnicastRemoteObject implements RMIBarrel
 
 
     private int barrelId, multicastBarrelsPort, multicastDownloadersPort, messageRecoverySleepTime, lastChekedMessageID = -1;
-    private int processedMessages = 0; // The number of messages processed from the downloader
     private int contiguosMessages = 0; // The number of contiguos messages received from the downloaders
     
-    private String diskFileFolderPath;
     
     private String fromDownloaderType = "type0"; // The type of the message that comes from the downloaders
     private String toDownloaderType = "type1"; // The type of the message that goes to the downloaders (ACKS)
     private String recoveryType = "type2"; // The type of the message that goes to the barrels (Recovery requests)
-    private String recoverdType = "type3"; // The type of the message that comes from the barrels (recovered messages)
     private String discoveryType = "type4"; // The type of the message that barrels send on startup to check if the other barrels have messages
     
     private InetAddress group = null;
@@ -463,9 +456,7 @@ public class IndexStorageBarrel extends UnicastRemoteObject implements RMIBarrel
             while(true){ // get the message id from the queue
 
                 messageId = dataToProcess.take();
-
-                // TODO add syncronized to were its needed to use threads
-
+                
                 try(Scanner scanner = new Scanner(messagesMap.get(messageId))){
 
                     // Process the data
@@ -898,7 +889,6 @@ public class IndexStorageBarrel extends UnicastRemoteObject implements RMIBarrel
             maxMulticastBytes+= Integer.parseInt(prop.getProperty("maxBytesTokens"));
             maxMulticastBytes+= Integer.parseInt(prop.getProperty("maxBytesLinks"));
             barrel.messageRecoverySleepTime = Integer.parseInt(prop.getProperty("messageRecoverySleepTime"));
-            barrel.diskFileFolderPath  = prop.getProperty("diskFileFolderPath");
 
             System.out.println(LocalDateTime.now() + " : Configurations sucessfully loaded!");
 

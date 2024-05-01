@@ -8,7 +8,6 @@ import java.rmi.server.UnicastRemoteObject;
 import java.util.List;
 import java.util.Properties;
 import java.util.Scanner;
-import java.util.Scanner;
 import java.net.MalformedURLException;
 import java.rmi.NotBoundException;
 

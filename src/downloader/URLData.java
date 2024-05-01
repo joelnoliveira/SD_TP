@@ -2,8 +2,6 @@ package downloader;
 
 import java.io.Serializable;
 
-import java.io.Serializable;
-
 /**
  * The URLData class represents the data associated with a URL in the downloader application.
  * It implements the Serializable interface to support object serialization.
