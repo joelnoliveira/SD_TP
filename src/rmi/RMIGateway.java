@@ -21,6 +21,7 @@ import java.util.Properties;
 import java.util.Random;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.Semaphore;
 
 import barrels.RMIBarrelsInterface;
 
@@ -49,13 +50,14 @@ import barrels.RMIBarrelsInterface;
  */
 public class RMIGateway extends UnicastRemoteObject implements RMIGatewayDownloadersInterface, RMIGatewayBarrelsInterface, RMIGatewayClientsInterface {
 
-    private long statisticsUpdateCount = 0; // Number of times the statistics were updated since the last print
     private int linkSearchDepth = 0, linkSearchCount = 0;
     private AtomicInteger messageId = new AtomicInteger(0);
+    private Semaphore mainSemaphore = new Semaphore(0);
     private LinkedBlockingQueue<String> urlQueue;
     private Map<Integer, RMIBarrelsInterface> barrels = new HashMap<>();
     private Map<Integer, Long> responseTimes = new HashMap<>();
     private Map<Integer, RMIClientsInterface> adminConsoleClients = new HashMap<>();
+    private Map<Integer, Semaphore> adminConsoleSemaphores = new HashMap<>(); // the number of permits will increase with the number of updates
 
     /**
      * Represents an RMIGateway object.
@@ -64,21 +66,15 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayDownloa
     public RMIGateway() throws RemoteException {
         urlQueue = new LinkedBlockingQueue<>();
     }
-
+    
     /**
-     * Subscribes a client with the specified ID to the RMIGateway, and returns the current latest statistics.
+     * Retrieves the statistics for the administration page.
      * 
-     * @param clientId the ID of the client to subscribe
-     * @param client the RMIClientsInterface object representing the client
-     * @throws RemoteException if a remote communication error occurs
+     * @return a string representing the statistics for the administration page
      */
-    public String subscribeAdminConsole(int clientId, RMIClientsInterface client) throws RemoteException {
+    private String getStatistics() {
 
         StringBuilder sb = new StringBuilder();
-
-        adminConsoleClients.put(clientId, client);
-        System.out.println(LocalDateTime.now() + " : Admin console client " + clientId + " subscribed.");
-
         sb.append("-- Real-time updated administration page --\nMost searched terms:\n");
         List<String> res2 = topSearches();
         for (String r : res2) {
@@ -95,6 +91,57 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayDownloa
             sb.append(r + "\n");
         }
         return sb.toString();
+    }
+    
+    private void adminConsoleUpdater(int clientId) {
+        
+        int count = 0;
+
+        while(adminConsoleClients.containsKey(clientId)){// check if the client is still subscribed
+            
+            try {
+                adminConsoleSemaphores.get(clientId).acquire(); // wait for the semaphore to be released
+
+                if(!adminConsoleClients.containsKey(clientId))break; // check if the client is still subscribed
+                count = adminConsoleSemaphores.get(clientId).availablePermits(); // get the number of permits available
+
+                adminConsoleClients.get(clientId).updateAdminConsole(getStatistics()); // update the admin console
+
+                adminConsoleSemaphores.get(clientId).acquire(count); // update the semaphore
+
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            } catch (RemoteException e) {
+                
+                adminConsoleClients.remove(clientId);
+                adminConsoleSemaphores.remove(clientId);
+                System.err.println( LocalDateTime.now() + " : Error while updating the admin console: " + e.getMessage());
+                return;
+            }
+        }
+
+        adminConsoleSemaphores.remove(clientId);
+    }
+
+    /**
+     * Subscribes a client with the specified ID to the RMIGateway, and returns the current latest statistics.
+     * 
+     * @param clientId the ID of the client to subscribe
+     * @param client the RMIClientsInterface object representing the client
+     * @throws RemoteException if a remote communication error occurs
+     */
+    public String subscribeAdminConsole(int clientId, RMIClientsInterface client) throws RemoteException {
+
+        adminConsoleSemaphores.put(clientId, new Semaphore(0));
+        adminConsoleClients.put(clientId, client);
+        System.out.println(LocalDateTime.now() + " : Admin console client " + clientId + " subscribed.");
+
+        new Thread(() -> {
+            
+            adminConsoleUpdater(clientId); // start a new thread per client to update its admin console
+        }).start();
+
+        return getStatistics();
     }
 
     /**
@@ -198,7 +245,7 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayDownloa
         barrels.put(id, barrel);
         System.out.println(LocalDateTime.now() + " : Barrel " + id + " subscribed.");
         
-        if(adminConsoleClients.size() > 0)statisticsUpdateCount++; // only update statistics if there are clients connected, to prevent overflow of the counter
+        if(adminConsoleClients.size() > 0)mainSemaphore.release(); // only update statistics if there are clients connected, to prevent overflow of the counter
         
     }
 
@@ -213,7 +260,7 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayDownloa
         barrels.remove(id);
         System.out.println(LocalDateTime.now() +" : Barrel " + id + " unsubscribed.");
         
-        if(adminConsoleClients.size() > 0)statisticsUpdateCount++; // only update statistics if there are clients connected, to prevent overflow of the counter
+        if(adminConsoleClients.size() > 0)mainSemaphore.release(); // only update statistics if there are clients connected, to prevent overflow of the counter
     }
    
     /**
@@ -301,6 +348,8 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayDownloa
         }
         // Store the response time for the barrel
         responseTimes.put(barrelId, mean);
+
+        if(adminConsoleClients.size() > 0)mainSemaphore.release(); // only update statistics if there are clients connected, to prevent overflow of the counter
         
         // Return the search results
         return groupResults(results);
@@ -388,6 +437,9 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayDownloa
         }
         // Store the response time for the barrel
         responseTimes.put(barrelId, mean);
+
+        if(adminConsoleClients.size() > 0)mainSemaphore.release(); // only update statistics if there are clients connected, to prevent overflow of the counter
+
         // Return the query results
         return results;
     }
@@ -522,7 +574,22 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayDownloa
                     gateway.addUrl(defaultURL);
                     System.out.println(LocalDateTime.now() + " : Default URL added to the queue.");
                 }
-                
+
+                // The main thread will now be responsible for updating the semaphores of the admin console clients
+
+                int count;
+                while(true){
+                    
+                    gateway.mainSemaphore.acquire(); // wait for the semaphore to be released
+                    count = gateway.mainSemaphore.availablePermits(); // get the number of permits available
+
+                    for(int clientId : gateway.adminConsoleClients.keySet()){
+
+                        gateway.adminConsoleSemaphores.get(clientId).release(count+1); // update the semaphore, +1 beacuse 1 permit was released on acquire
+                    }
+
+                    gateway.mainSemaphore.acquire(count); // update main semaphore
+                }
             } catch (Exception e) {
                 System.out.println(LocalDateTime.now() + " : RMIGateway failed: " + e);
             }

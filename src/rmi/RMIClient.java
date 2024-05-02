@@ -37,7 +37,10 @@ public class RMIClient extends UnicastRemoteObject implements RMIClientsInterfac
     public void updateAdminConsole(String message) throws RemoteException {
 
         // check if the client still has the admin console open
-        if (activeAdminConsole)System.out.println(message);
+        if (activeAdminConsole){
+
+            System.out.println(message + "Press any key to exit the administraion console");
+        }
     }
 
     
@@ -153,7 +156,9 @@ public class RMIClient extends UnicastRemoteObject implements RMIClientsInterfac
                 String message = gateway.subscribeAdminConsole(id, this);
                 System.out.println(message);
 
-                // loop to keep the admin console open
+                String clientInput = "";
+                System.out.println("Press any key to exit the administraion console");
+                clientInput = sc.nextLine(); // exit after any key is pressed
 
                 // wait for the client to exit the admin console
                 activeAdminConsole = false;
