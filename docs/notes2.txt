@@ -1,2 +1,4 @@
-Later:
-	Could be necessary to make the real time update of statistics of barrels and downloaders to make the web interactive.
+Could be necessary to make the real time update of statistics of barrels and downloaders to make the web interactive.
+-> how to make it?
+	-> 
+	

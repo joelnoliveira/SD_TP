@@ -19,6 +19,7 @@ import java.rmi.NotBoundException;
  */
 public class RMIClient extends UnicastRemoteObject implements RMIClientsInterface{
 
+    private boolean activeAdminConsole = false;
     private Scanner sc = new Scanner(System.in);
     private int id, characterLimit;
     private RMIGatewayClientsInterface gateway;
@@ -33,14 +34,10 @@ public class RMIClient extends UnicastRemoteObject implements RMIClientsInterfac
 
     // ----------------- Remote methods -----------------
 
-    /**
-     * Notifies the client with a message.
-     *
-     * @param message the message to be notified
-     * @throws RemoteException if a remote communication error occurs
-     */
-    public void notify(String message) throws RemoteException{
-        System.out.println("Client " + id + " received: " + message);
+    public void updateAdminConsole(String message) throws RemoteException {
+
+        // check if the client still has the admin console open
+        if (activeAdminConsole)System.out.println(message);
     }
 
     
@@ -152,22 +149,15 @@ public class RMIClient extends UnicastRemoteObject implements RMIClientsInterfac
                 break;
             case 4:
                 // Query real-time updated administration page
-                System.out.println("Real-time updated administration page");
-                List<String> res2 = gateway.topSearches();
-                System.out.println("Most searched terms: ");
-                for (String r : res2) {
-                    System.out.println(r);
-                }
-                List<Integer> barrels = gateway.getBarrelsList();
-                System.out.println("Connected barrels: ");
-                for (int b : barrels) {
-                    System.out.println("Barrel" + b);
-                }
-                System.out.println("Mean Response time: ");
-                List<String> res3 = gateway.getMeanResponseTimeByBarrel();
-                for (String r : res3) {
-                    System.out.println(r);
-                }
+                activeAdminConsole = true;
+                String message = gateway.subscribeAdminConsole(id, this);
+                System.out.println(message);
+
+                // loop to keep the admin console open
+
+                // wait for the client to exit the admin console
+                activeAdminConsole = false;
+                gateway.unsubscribeAdminConsole(id);
                 break;
             case 5:
                 System.out.println("Exiting");

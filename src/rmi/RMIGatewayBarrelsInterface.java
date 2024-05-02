@@ -30,9 +30,9 @@ public interface RMIGatewayBarrelsInterface extends Remote {
     /**
      * Adds the response time of a barrel to the response time list maintained by the gateway.
      * 
-     * @param barrel The RMIBarrelsInterface object representing the barrel.
+     * @param barrelId The ID of the barrel.
      * @param a The response time to add to the list.
      * @throws RemoteException if a remote communication error occurs.
      */
-    public void addResponseTimeList(RMIBarrelsInterface barrel, Long a) throws RemoteException;
+    public void addResponseTimeList(int barrelId, Long a) throws RemoteException;
 }

@@ -8,11 +8,12 @@ import java.rmi.RemoteException;
  * It extends the Remote interface to support remote method invocation.
  */
 public interface RMIClientsInterface extends Remote {
+    
     /**
-     * Notifies the client with a message.
-     *
-     * @param message the message to be sent to the client
-     * @throws RemoteException if there is a communication error during the remote method invocation
+     * Updates the client's administration console with a message.
+     * 
+     * @param message the message to display
+     * @throws RemoteException if a remote communication error occurs
      */
-    public void notify(String message) throws RemoteException;
+    public void updateAdminConsole(String message) throws RemoteException;
 }

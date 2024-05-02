@@ -898,7 +898,7 @@ public class IndexStorageBarrel extends UnicastRemoteObject implements RMIBarrel
                 barrel.gateway = (RMIGatewayBarrelsInterface) Naming.lookup(registryName);
                 barrel.gateway.barrelSubscribe(barrel.barrelId, barrel);
 
-                barrel.gateway.addResponseTimeList(barrel,0L);
+                barrel.gateway.addResponseTimeList(barrel.barrelId,0L);
 
                 barrel.socket = new MulticastSocket(barrel.multicastBarrelsPort);
                 System.out.println(LocalDateTime.now() + " : Multicast socket created!");

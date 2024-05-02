@@ -49,11 +49,13 @@ import barrels.RMIBarrelsInterface;
  */
 public class RMIGateway extends UnicastRemoteObject implements RMIGatewayDownloadersInterface, RMIGatewayBarrelsInterface, RMIGatewayClientsInterface {
 
+    private long statisticsUpdateCount = 0; // Number of times the statistics were updated since the last print
     private int linkSearchDepth = 0, linkSearchCount = 0;
     private AtomicInteger messageId = new AtomicInteger(0);
     private LinkedBlockingQueue<String> urlQueue;
-    private HashMap<Integer, RMIBarrelsInterface> barrels = new HashMap<>();
-    private Map<RMIBarrelsInterface, Long> responseTimes = new HashMap<>();
+    private Map<Integer, RMIBarrelsInterface> barrels = new HashMap<>();
+    private Map<Integer, Long> responseTimes = new HashMap<>();
+    private Map<Integer, RMIClientsInterface> adminConsoleClients = new HashMap<>();
 
     /**
      * Represents an RMIGateway object.
@@ -61,6 +63,50 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayDownloa
      */
     public RMIGateway() throws RemoteException {
         urlQueue = new LinkedBlockingQueue<>();
+    }
+
+    /**
+     * Subscribes a client with the specified ID to the RMIGateway, and returns the current latest statistics.
+     * 
+     * @param clientId the ID of the client to subscribe
+     * @param client the RMIClientsInterface object representing the client
+     * @throws RemoteException if a remote communication error occurs
+     */
+    public String subscribeAdminConsole(int clientId, RMIClientsInterface client) throws RemoteException {
+
+        StringBuilder sb = new StringBuilder();
+
+        adminConsoleClients.put(clientId, client);
+        System.out.println(LocalDateTime.now() + " : Admin console client " + clientId + " subscribed.");
+
+        sb.append("-- Real-time updated administration page --\nMost searched terms:\n");
+        List<String> res2 = topSearches();
+        for (String r : res2) {
+            sb.append(r + "\n");
+        }
+        List<Integer> barrels = getBarrelsList();
+        sb.append("Connected barrels:\n");
+        for (int b : barrels) {
+            sb.append("Barrel" + b + "\n");
+        }
+        sb.append("Mean Response time:\n");
+        List<String> res3 = getMeanResponseTimeByBarrel();
+        for (String r : res3) {
+            sb.append(r + "\n");
+        }
+        return sb.toString();
+    }
+
+    /**
+     * Unsubscribes an admin console client with the specified ID from the RMIGateway.
+     * 
+     * @param clientId the ID of the client to unsubscribe
+     * @throws RemoteException if a remote communication error occurs
+     */
+    public void unsubscribeAdminConsole(int clientId) throws RemoteException {
+
+        adminConsoleClients.remove(clientId);
+        System.out.println(LocalDateTime.now() + " : Admin console client " + clientId + " unsubscribed.");
     }
 
     /**
@@ -151,6 +197,9 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayDownloa
 
         barrels.put(id, barrel);
         System.out.println(LocalDateTime.now() + " : Barrel " + id + " subscribed.");
+        
+        if(adminConsoleClients.size() > 0)statisticsUpdateCount++; // only update statistics if there are clients connected, to prevent overflow of the counter
+        
     }
 
     /**
@@ -163,6 +212,8 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayDownloa
 
         barrels.remove(id);
         System.out.println(LocalDateTime.now() +" : Barrel " + id + " unsubscribed.");
+        
+        if(adminConsoleClients.size() > 0)statisticsUpdateCount++; // only update statistics if there are clients connected, to prevent overflow of the counter
     }
    
     /**
@@ -183,7 +234,7 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayDownloa
      * @return A list of barrel IDs.
      * @throws RemoteException if a remote communication error occurs.
      */
-    public List<Integer> getBarrelsList() throws RemoteException {
+    private List<Integer> getBarrelsList() {
         List<Integer> list = new ArrayList<>();
         try {
             for(int id : barrels.keySet()) {
@@ -208,13 +259,12 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayDownloa
         int barrelId = getRandomBarrel();
         RMIBarrelsInterface barrel = barrels.get(barrelId);
         
+        // Initialize a list to store the search results
+        List<String> results = new ArrayList<String>();
+
         // Get the start time of the search
         long startTime = System.currentTimeMillis();
         
-        // Initialize a list to store the search results
-        List<String> results = new ArrayList<String>();
-        
-        // Create a new thread to perform the search
         // Get the URLs from the barrel by the given keywords
         HashSet<String> urls = barrel.getURLsByTerms(keywords);
         // Verifica se a lista de URLs é nula
@@ -243,14 +293,14 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayDownloa
         // Calculate the search time
         long searchTime = endTime - startTime;
         
-        long mean = responseTimes.get(barrel);
+        long mean = responseTimes.get(barrelId);
         if (mean == 0) {
             mean = searchTime;
         } else {
             mean = (mean + searchTime) / 2;
         }
         // Store the response time for the barrel
-        responseTimes.put(barrel, mean);
+        responseTimes.put(barrelId, mean);
         
         // Return the search results
         return groupResults(results);
@@ -330,14 +380,14 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayDownloa
         // Calculate the query time
         long consultTime = endTime - startTime;
 
-        long mean = responseTimes.get(barrel);
+        long mean = responseTimes.get(barrelId);
         if (mean == 0) {
             mean = consultTime;
         } else {
             mean = (mean + consultTime) / 2;
         }
         // Store the response time for the barrel
-        responseTimes.put(barrel, mean);
+        responseTimes.put(barrelId, mean);
         // Return the query results
         return results;
     }
@@ -348,7 +398,7 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayDownloa
      * @return a list of strings representing the top searched terms and their frequencies.
      * @throws RemoteException if a remote exception occurs during the retrieval of the searched terms.
      */
-    public List<String> topSearches() throws RemoteException {
+    private List<String> topSearches(){
         Map<String, Integer> mergedTerms = new HashMap<>();
         ArrayList<String> topTerms = new ArrayList<>();
         // Create a new thread to retrieve the top searched terms
@@ -392,11 +442,11 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayDownloa
      * @return A list of strings representing the mean response time for each barrel.
      * @throws RemoteException If a remote communication error occurs.
      */
-    public List<String> getMeanResponseTimeByBarrel() throws RemoteException {
+    private List<String> getMeanResponseTimeByBarrel() {
+
         List<String> responseTimesList = new ArrayList<>();
-        for (RMIBarrelsInterface barrel : barrels.values()) {
-            long times = responseTimes.get(barrel);
-            int barrelId = barrel.getBarrelID();
+        for (int barrelId : barrels.keySet()) {
+            long times = responseTimes.get(barrelId);
             responseTimesList.add("Barrel" + barrelId + " - " + times + " ms");
         }
         return responseTimesList;
@@ -420,12 +470,12 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayDownloa
     /**
      * Adds a response time to the responseTimes map.
      * 
-     * @param barrel the RMIBarrelsInterface object representing the barrel.
+     * @param barrelId the ID of the barrel.
      * @param a the response time to be added.
      * @throws RemoteException if a remote communication error occurs.
      */
-    public void addResponseTimeList(RMIBarrelsInterface barrel, Long a) throws RemoteException {
-        responseTimes.put(barrel,a);
+    public void addResponseTimeList(int barrelId, Long a) throws RemoteException {
+        responseTimes.put(barrelId,a);
     }
     
     /**

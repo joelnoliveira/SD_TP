@@ -35,26 +35,20 @@ public interface RMIGatewayClientsInterface extends Remote {
     public List<String> consult(String urlConsult) throws RemoteException;
     
     /**
-     * Retrieves the top searches performed by clients.
+     * Subscribes the client to the admin console.
      * 
-     * @return a list of top searches
+     * @param clientId the ID of the client to subscribe
+     * @param client the RMIClientsInterface object used for communication with the client
+     * @return a message indicating the result of the subscription
      * @throws RemoteException if a remote communication error occurs
      */
-    public List<String> topSearches() throws RemoteException;
-    
+    public String subscribeAdminConsole(int clientId, RMIClientsInterface client) throws RemoteException;
+
     /**
-     * Retrieves the list of barrels available in the system.
+     * Unsubscribes the client from the admin console.
      * 
-     * @return a list of barrels
+     * @param clientId the ID of the client to unsubscribe
      * @throws RemoteException if a remote communication error occurs
      */
-    public List<Integer> getBarrelsList() throws RemoteException;
-    
-    /**
-     * Retrieves the mean response time for each barrel in the system.
-     * 
-     * @return a list of mean response times by barrel
-     * @throws RemoteException if a remote communication error occurs
-     */
-    public List<String> getMeanResponseTimeByBarrel() throws RemoteException;
+    public void unsubscribeAdminConsole(int clientId) throws RemoteException;
 }
