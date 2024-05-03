@@ -91,7 +91,6 @@ public class IndexStorageBarrel extends UnicastRemoteObject implements RMIBarrel
     private Map<Integer, String> urlMap = new HashMap<>(); // Makes the correspondence between a number (aka doucument id) and a url, even tough the processed data is identified by url, the index will help save space when regestering for each url the links that point to it
     private Map<String, URL> urlDataMap = new HashMap<>(); // Makes the correspondence between a url and its data (the URLData object)
     private Map<String, HashSet<Integer>> index = new HashMap<>(); // makes the correspondence between a word and the urls that contain it
-    private Map<String, Integer> termCounts = new HashMap<>(); // The number of times a term was searched
 
     // bloking queues
     private LinkedBlockingQueue<String> receivedMessages = new LinkedBlockingQueue<>();
@@ -129,11 +128,6 @@ public class IndexStorageBarrel extends UnicastRemoteObject implements RMIBarrel
         // Split the input terms string into individual terms and add them to the list
         for (String term : terms.split(" ")) {
             termsList.add(term);
-            if(!termCounts.containsKey(term)){
-                termCounts.put(term, 1);
-            } else {
-                termCounts.merge(term, 1, Integer::sum);
-            }
         }
 
         // Initialize a HashSet to store URLs
@@ -293,21 +287,6 @@ public class IndexStorageBarrel extends UnicastRemoteObject implements RMIBarrel
         
         // Return the list of pages that link to the given URL
         return pages;
-    }
-
-    /**
-     * Returns a map of the top searched terms and their corresponding counts.
-     *
-     * @return a map containing the top searched terms and their counts
-     */
-    public Map<String, Integer> getSearchedTerms() {
-        List<Map.Entry<String, Integer>> sortedTerms = new ArrayList<>(termCounts.entrySet());
-        sortedTerms.sort(Collections.reverseOrder(Map.Entry.comparingByValue()));
-        Map<String, Integer> topTerms = new LinkedHashMap<>();
-        for (int i = 0; i < sortedTerms.size(); i++) {
-            topTerms.put(sortedTerms.get(i).getKey(), sortedTerms.get(i).getValue());
-        }
-        return topTerms;
     }
 
     /**

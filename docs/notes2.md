@@ -15,6 +15,7 @@
 ### But how to update the semaphores count for new statistics?
 - If each statistic changer, like for example a new barrel, updates the semaphores there would be a slowdown. So consider using a main semaphore that each stats update will increase and that main semaphore will be controlled by the main thread of the gateway that after its unlock will update all the others semaphores.
 
-## Notes:
+### The barrels are not exchanging searches information between each other, and that data is not also being saved
+- Maybe just save statistics information on the gateway just to be simpler, but maybe in real life it would be more appropriate to save said statistics in the barrels and then later retrieve it.
+- Maybe be the search count of words should be saved in decreasing size, but then it could have problems with concurrency, so we opted by each time retrieve all the words count and then order it.
 
-- The barrels are exchanging between each other of the data received from the downloader, but are not currently exchanging stats info. #TODO

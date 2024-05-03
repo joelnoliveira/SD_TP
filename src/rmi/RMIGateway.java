@@ -22,9 +22,7 @@ import java.util.Random;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.Semaphore;
-
 import barrels.RMIBarrelsInterface;
-
 
 /**
  * The RMIGateway class represents a gateway for remote method invocation (RMI) in a distributed system.
@@ -54,8 +52,11 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayDownloa
     private AtomicInteger messageId = new AtomicInteger(0);
     private Semaphore mainSemaphore = new Semaphore(0);
     private LinkedBlockingQueue<String> urlQueue;
+
     private Map<Integer, RMIBarrelsInterface> barrels = new HashMap<>();
     private Map<Integer, Long> responseTimes = new HashMap<>();
+
+    private Map<String, Integer> termCounts = new HashMap<>(); // The number of times a term was searched
     private Map<Integer, RMIClientsInterface> adminConsoleClients = new HashMap<>();
     private Map<Integer, Semaphore> adminConsoleSemaphores = new HashMap<>(); // the number of permits will increase with the number of updates
 
@@ -314,6 +315,14 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayDownloa
         
         // Get the URLs from the barrel by the given keywords
         HashSet<String> urls = barrel.getURLsByTerms(keywords);
+
+        for (String term : keywords.split(" ")) {
+            
+            // Update the term count
+            if(!termCounts.containsKey(term))termCounts.put(term, 1);
+            else termCounts.merge(term, 1, Integer::sum);
+        }
+
         // Verifica se a lista de URLs é nula
         if (urls == null) {
             // Add a message to the results list if no results were found
@@ -444,48 +453,24 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayDownloa
         return results;
     }
 
-    /**
-     * Retrieves the top searched terms from all the RMIBarrelsInterface instances.
-     * 
-     * @return a list of strings representing the top searched terms and their frequencies.
-     * @throws RemoteException if a remote exception occurs during the retrieval of the searched terms.
-     */
+    
     private List<String> topSearches(){
-        Map<String, Integer> mergedTerms = new HashMap<>();
-        ArrayList<String> topTerms = new ArrayList<>();
-        // Create a new thread to retrieve the top searched terms
-        Thread topSearchesThread = new Thread(() -> {
-            for (RMIBarrelsInterface barrel : barrels.values()) {
-                Map<String, Integer> terms;
-                try {
-                    terms = barrel.getSearchedTerms();
-                    mergeMap(mergedTerms, terms);
-                System.out.println("Merged terms: " + mergedTerms);
-                } catch (RemoteException e) {
-                    e.printStackTrace();
-                }
-            }
-            List<Map.Entry<String, Integer>> sortedEntries = new ArrayList<>(mergedTerms.entrySet());
-            sortedEntries.sort(Map.Entry.<String, Integer>comparingByValue().reversed());
+        
+        // Convert the map values to a list
+        List<Map.Entry<String, Integer>> list = new ArrayList<>(termCounts.entrySet());
+        
+        // Sort the list in descending order of values
+        list.sort(Map.Entry.<String, Integer>comparingByValue().reversed());
 
-            List<Map.Entry<String, Integer>> topEntries = sortedEntries.subList(0, Math.min(10, sortedEntries.size()));
+        // Get the top 10 keys
+        List<String> top10 = new ArrayList<>();
 
-            for (Map.Entry<String, Integer> entry : topEntries) {
-                topTerms.add(entry.getKey() + " - " + entry.getValue());
-            }
-            if (topTerms.isEmpty()) {
-                topTerms.add("No search terms found");
-            }
-        });
-        // Start the thread to retrieve the top searched terms
-        topSearchesThread.start();
-
-        try {
-            topSearchesThread.join();
-        } catch (InterruptedException e) {
-            System.out.println("Error while waiting for the search to complete: " + e.getMessage());
+        for (int i = 0; i < Math.min(10, list.size()); i++) {
+            top10.add(list.get(i).getKey() + " - " + list.get(i).getValue());
         }
-        return topTerms;
+
+
+        return top10;
     }
 
     /**
@@ -502,21 +487,6 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayDownloa
             responseTimesList.add("Barrel" + barrelId + " - " + times + " ms");
         }
         return responseTimesList;
-    }
-
-    /**
-     * Merges the contents of map2 into map1 by adding the values of common keys.
-     * If a key exists in both maps, the corresponding values are added together.
-     *
-     * @param map1 the first map to merge into
-     * @param map2 the second map to merge from
-     */
-    private void mergeMap(Map<String, Integer> map1, Map<String, Integer> map2) {
-        for (Map.Entry<String, Integer> entry : map2.entrySet()) {
-            String termo = entry.getKey();
-            int contador = entry.getValue();
-            map1.put(termo, map1.getOrDefault(termo, 0) + contador);
-        }
     }
 
     /**

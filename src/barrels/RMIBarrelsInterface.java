@@ -4,7 +4,6 @@ import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
-import java.util.Map;
 
 /**
  * The RMIBarrelsInterface interface defines the methods that can be invoked remotely
@@ -58,14 +57,6 @@ public interface RMIBarrelsInterface extends Remote {
      * @throws RemoteException if a remote communication error occurs
      */
     public ArrayList<String> getPagesThatLinksTo(String url) throws RemoteException;
-    
-    /**
-     * Retrieves a map of searched terms and their frequencies.
-     *
-     * @return a Map containing the searched terms and their frequencies
-     * @throws RemoteException if a remote communication error occurs
-     */
-    public Map<String, Integer> getSearchedTerms() throws RemoteException;
     
     /**
      * Retrieves the ID of the RMIBarrels object.

@@ -156,9 +156,8 @@ public class RMIClient extends UnicastRemoteObject implements RMIClientsInterfac
                 String message = gateway.subscribeAdminConsole(id, this);
                 System.out.println(message);
 
-                String clientInput = "";
                 System.out.println("Press any key to exit the administraion console");
-                clientInput = sc.nextLine(); // exit after any key is pressed
+                sc.nextLine(); // exit after any key is pressed
 
                 // wait for the client to exit the admin console
                 activeAdminConsole = false;
