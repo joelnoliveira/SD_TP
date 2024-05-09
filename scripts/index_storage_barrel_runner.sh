@@ -1,4 +1,5 @@
 #!/bin/bash
+# THIS SCRIPT IS INTENDED TO BE RUN FROM THE ROOT DIRECTORY OF THE PROJECT
 
 id=$(date +%N) # default id for the index storage barrel
 input_path="config/index_storage_barrels.properties" # default input path relative to the root directory

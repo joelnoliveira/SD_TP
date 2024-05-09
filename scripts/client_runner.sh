@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# THIS SCRIPT IS INTENDED TO BE RUN FROM THE ROOT DIRECTORY OF THE PROJECT
+
 id=$(date +%N) # default id for the downloader
 input_path="config/clients.properties" # default input path relative to the root directory
 

@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# THIS SCRIPT IS INTENDED TO BE RUN FROM THE ROOT DIRECTORY OF THE PROJECT
+
 input_path="config/rmi_gateway.properties" # default input path relative to the root directory
 output_path="logs/rmi_gateway_$(date +%Y%m%d%H%M%S%N).txt" # default output path relative to the root directory
 
