@@ -10,6 +10,10 @@ rmi_path="${general_path}rmi/"
 downloader_path="${general_path}downloader/"
 barrel_path="${general_path}barrels/"
 
+# Create the bin and logs in case they don't exist 
+mkdir -p bin
+mkdir -p logs
+
 # In case there is a flag -delete_bin_before_compile or -clean_all, delete everything in the bin folder
 if [ "$1" = "-delete_bin_before_compile" ] || [ "$1" = "-clean_all" ]; then
     rm -rf bin/*
