@@ -1,4 +1,4 @@
-package downloader;
+package com.ds.googol.downloader;
 
 import java.io.Serializable;
 

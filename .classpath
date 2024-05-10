@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
-    <classpathentry kind="src" path="src"/>
-    <classpathentry kind="lib" path="lib/jars/jsoup-1.17.2.jar"/>
+    <classpathentry kind="src" path="backend/src"/>
+    <classpathentry kind="lib" path="backend/lib/jars/jsoup-1.17.2.jar"/>
     <classpathentry kind="output" path="bin"/>
 </classpath>

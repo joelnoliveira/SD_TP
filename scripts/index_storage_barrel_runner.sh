@@ -3,6 +3,7 @@
 
 id=$(date +%N) # default id for the index storage barrel
 input_path="config/index_storage_barrels.properties" # default input path relative to the root directory
+domain="com.ds.googol" # default domain for the packages
 
 # check if the user provides an id for the downloaders there mustn't be any other equal id
 if [ $# -gt 0 ]; then
@@ -40,6 +41,6 @@ fi
 
 cd bin
 
-java barrels.IndexStorageBarrel $id ../$input_path >> ../$output_path
+java $domain.barrels.IndexStorageBarrel $id ../$input_path >> ../$output_path
 
 cd ..

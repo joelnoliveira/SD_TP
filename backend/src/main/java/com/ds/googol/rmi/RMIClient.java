@@ -1,4 +1,4 @@
-package rmi;
+package com.ds.googol.rmi;
 
 import java.io.FileInputStream;
 import java.io.InputStream;

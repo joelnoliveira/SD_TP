@@ -4,6 +4,7 @@
 
 input_path="config/rmi_gateway.properties" # default input path relative to the root directory
 output_path="logs/rmi_gateway_$(date +%Y%m%d%H%M%S%N).txt" # default output path relative to the root directory
+domain="com.ds.googol" # default domain for the packages
 
 # if the user provides an input path, use it
 if [ $# -gt 0 ]; then
@@ -29,6 +30,6 @@ fi
 
 cd bin
 
-java -cp . rmi.RMIGateway ../$input_path > ../$output_path
+java -cp . $domain.rmi.RMIGateway ../$input_path > ../$output_path
 
 cd ..

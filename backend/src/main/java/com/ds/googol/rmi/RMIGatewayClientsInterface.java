@@ -1,4 +1,4 @@
-package rmi;
+package com.ds.googol.rmi;
 
 import java.rmi.Remote;
 import java.rmi.RemoteException;

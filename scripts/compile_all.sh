@@ -3,7 +3,7 @@
 # THIS SCRIPT IS INTENDED TO BE RUN FROM THE ROOT DIRECTORY OF THE PROJECT
 
 general_path="backend/src/main/java/com/ds/googol/" # default path to the packages 
-jsoup_path="${general_path}lib/jars/jsoup-1.17.2.jar" # default path to the jsoup jar
+jsoup_path="backend/lib/jars/jsoup-1.17.2.jar" # default path to the jsoup jar
 
 # default paths to the packages
 rmi_path="${general_path}rmi/"

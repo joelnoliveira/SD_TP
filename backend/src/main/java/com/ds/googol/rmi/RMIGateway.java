@@ -4,7 +4,7 @@
  * The RMIGateway is responsible for managing the URL queue, interacting with barrels, and performing search and query operations.
  * It also keeps track of response times for each barrel.
  */
-package rmi;
+package com.ds.googol.rmi;
 
 import java.io.FileInputStream;
 import java.io.InputStream;
@@ -22,7 +22,7 @@ import java.util.Random;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.Semaphore;
-import barrels.RMIBarrelsInterface;
+import com.ds.googol.barrels.RMIBarrelsInterface;
 
 /**
  * The RMIGateway class represents a gateway for remote method invocation (RMI) in a distributed system.

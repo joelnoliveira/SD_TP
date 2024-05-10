@@ -1,4 +1,4 @@
-package downloader;
+package com.ds.googol.downloader;
 
 import org.jsoup.Jsoup;
 
@@ -20,7 +20,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.time.LocalDateTime;
 import java.net.ConnectException;
 import java.rmi.Naming;
-import rmi.RMIGatewayDownloadersInterface;
+import com.ds.googol.rmi.RMIGatewayDownloadersInterface;
 
 import java.net.DatagramPacket;
 import java.net.InetAddress;

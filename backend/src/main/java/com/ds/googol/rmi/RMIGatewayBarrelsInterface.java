@@ -1,8 +1,8 @@
-package rmi;
+package com.ds.googol.rmi;
 
 import java.rmi.Remote;
 import java.rmi.RemoteException;
-import barrels.RMIBarrelsInterface;
+import com.ds.googol.barrels.RMIBarrelsInterface;
 
 /**
  * The RMIGatewayBarrelsInterface interface defines the methods for interacting with the gateway for barrels in a distributed system using RMI.

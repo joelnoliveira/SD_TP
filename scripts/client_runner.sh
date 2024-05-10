@@ -4,6 +4,7 @@
 
 id=$(date +%N) # default id for the downloader
 input_path="config/clients.properties" # default input path relative to the root directory
+domain="com.ds.googol" # default domain for the packages
 
 # check if the user provides an id for the user there mustn't be any other equal id
 if [ $# -gt 0 ]; then
@@ -34,6 +35,6 @@ fi
 
 cd bin
 
-java rmi.RMIClient $id ../$input_path
+java $domain.rmi.RMIClient $id ../$input_path
 
 cd ..
