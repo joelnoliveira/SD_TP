@@ -1,4 +1,4 @@
-package com.ds.googol.barrels;
+package barrels;
 
 import java.rmi.Remote;
 import java.rmi.RemoteException;

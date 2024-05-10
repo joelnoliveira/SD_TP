@@ -3,7 +3,7 @@
 
 HELP.md
 target/
-!.mvn/wrapper/maven-wrapper.jar
+!/web_server/backend/.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
 

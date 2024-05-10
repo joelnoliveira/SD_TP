@@ -4,8 +4,7 @@
 
 id=$(date +%N) # default id for the downloader
 input_path="config/downloaders.properties" # default input path relative to the root directory
-domain="com.ds.googol" # default domain for the packages
-jsoup_path="backend/lib/jars/jsoup-1.17.2.jar" # default path to the jsoup jar
+jsoup_path="lib/jars/jsoup-1.17.2.jar" # default path to the jsoup jar
 
 # check if the user provides an id for the downloaders there mustn't be any other equal id
 if [ $# -gt 0 ]; then
@@ -43,6 +42,6 @@ fi
 
 cd bin
 
-java -cp .:../$jsoup_path $domain.downloader.Downloader $id ../$input_path > ../$output_path
+java -cp .:../$jsoup_path downloader.Downloader $id ../$input_path > ../$output_path
 
 cd ..

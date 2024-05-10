@@ -1,4 +1,4 @@
-package com.ds.googol.downloader;
+package downloader;
 
 import org.jsoup.Jsoup;
 
@@ -13,6 +13,8 @@ import org.jsoup.nodes.Element;
 import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
 
+import gateway.RMIGatewayDownloadersInterface;
+
 import java.util.HashMap;
 import java.util.Properties;
 import java.util.StringTokenizer;
@@ -20,8 +22,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.time.LocalDateTime;
 import java.net.ConnectException;
 import java.rmi.Naming;
-import com.ds.googol.rmi.RMIGatewayDownloadersInterface;
-
 import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;

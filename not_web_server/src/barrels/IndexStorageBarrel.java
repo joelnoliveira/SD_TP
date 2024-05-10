@@ -1,4 +1,4 @@
-package com.ds.googol.barrels;
+package barrels;
 
 import java.io.EOFException;
 import java.io.File;
@@ -33,8 +33,8 @@ import java.util.StringTokenizer;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.Semaphore;
 
-import com.ds.googol.downloader.URLData;
-import com.ds.googol.rmi.RMIGatewayBarrelsInterface;
+import downloader.URLData;
+import gateway.RMIGatewayBarrelsInterface;
 
 
 /**

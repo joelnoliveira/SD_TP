@@ -1,4 +1,4 @@
-package com.ds.googol.rmi;
+package gateway_client_dependencies;
 
 import java.rmi.Remote;
 import java.rmi.RemoteException;
