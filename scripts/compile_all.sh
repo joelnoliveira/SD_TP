@@ -3,7 +3,9 @@
 # THIS SCRIPT IS INTENDED TO BE RUN FROM THE ROOT DIRECTORY OF THE PROJECT
 
 general_path="not_web_server/src/" # default path to the packages 
-jsoup_path="lib/jars/jsoup-1.17.2.jar" # default path to the jsoup jar
+jsoup_path="not_web_server/lib/jars/jsoup-1.17.2.jar" # default path to the jsoup jar
+g_c_d_jar_path="web_server/lib/jars/gateway_client_dependencies.jar" # default path to the gateway client dependencies jar
+mvn_path="web_server/backend/" # default path to the web server
 
 # default paths to the packages
 gateway_path="${general_path}gateway/"
@@ -41,7 +43,8 @@ javac -d bin ${client_path}RMIClient.java ${g_c_d_path}RMIClientsInterface.java 
 # If there happened no errors in the last compilation create a jar files for the gateway_client_dependencies package to be used by the web server
 if [ $? -eq 0 ]; then
     echo "Creating jar files for the client"
-    jar -cvf lib/jars/gateway_client_dependencies.jar -C bin gateway_client_dependencies
+    jar -cvf $g_c_d_jar_path -C bin gateway_client_dependencies
+
 fi 
 
 # In case there is a flag -delete_logs or -clean_all, delete everything in the logs folder

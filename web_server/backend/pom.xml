@@ -38,6 +38,13 @@
 			<scope>test</scope>
 		</dependency>
 
+		<dependency>
+			<groupId>googol.meta1</groupId>
+			<artifactId>gateway_client_dependencies</artifactId>
+			<version>1.0</version>
+			<scope>system</scope>
+			<systemPath>${project.basedir}/../lib/jars/gateway_client_dependencies.jar</systemPath>
+		</dependency>
 	</dependencies>
 
 	<build>
