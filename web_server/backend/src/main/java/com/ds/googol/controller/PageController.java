@@ -17,10 +17,16 @@ import org.springframework.ui.Model;
 @Controller
 public class PageController {
     
-    @GetMapping("/greeting")
-	public String greeting(@RequestParam(name="name", required=false, defaultValue="World") String name, Model model) {
-		model.addAttribute("name", name);
-		model.addAttribute("othername", "SD");
-		return "greeting";
+    @GetMapping("/index")
+	public String index() {
+		
+		return "index";
+	}
+
+	@PostMapping("/index")
+	public String index(@RequestParam("option") String option, Model model) {
+		
+		System.out.println(option);
+		return "index";
 	}
 }
