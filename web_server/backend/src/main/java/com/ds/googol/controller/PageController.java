@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.context.WebApplicationContext;
-import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import org.springframework.ui.Model;
 
 import com.ds.googol.beans.WebClient;
@@ -65,7 +64,7 @@ public class PageController {
 	public String searchTermsResult(@RequestParam("input") String terms, Model model) {
 		
 		
-		model.addAttribute("termsResult", client.searchByTerms(terms));
+		model.addAttribute("termsResult", client.searchByTerms(terms,0));
 		return "terms_result";
 	}
 

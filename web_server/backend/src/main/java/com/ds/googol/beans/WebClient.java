@@ -9,12 +9,10 @@ import meta1.RMIGatewayClientsInterface;
 public class WebClient implements RMIClientsInterface{
 
     private int id, characterLimit;
-    private String registryName;
     private RMIGatewayClientsInterface gateway;
 
     public WebClient(int id, String registryName, int characterLimit) {
         this.id = id;
-        this.registryName = registryName;
         this.characterLimit = characterLimit;
         
         try{
@@ -44,10 +42,10 @@ public class WebClient implements RMIClientsInterface{
         return true;
     }
 
-    public List<String> searchByTerms(String terms) {
+    public List<String> searchByTerms(String terms, int batchCount) {
         
         try{
-            return gateway.searchByTerms(terms, characterLimit);
+            return gateway.searchByTerms(terms, batchCount, characterLimit);
 
         }catch (Exception e){// if there is an error null is returned
             e.printStackTrace();
@@ -55,10 +53,10 @@ public class WebClient implements RMIClientsInterface{
         }
     }
     
-    public List<String> consult(String urlConsult) {
+    public List<String> consult(String urlConsult, int batchCount) {
         
         try{
-            return gateway.consult(urlConsult);
+            return gateway.consultURL(urlConsult, batchCount);
 
         }catch (Exception e){// if there is an error null is returned
             e.printStackTrace();

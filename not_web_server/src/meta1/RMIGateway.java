@@ -14,7 +14,6 @@ import java.rmi.server.UnicastRemoteObject;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -271,6 +270,9 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayDownloa
     private int getRandomBarrel() {
         Random rand = new Random();
         List<Integer> keys = new ArrayList<Integer>(barrels.keySet());
+        if (keys.isEmpty()) {
+            return -1;
+        }
         Integer randomKey = keys.get(rand.nextInt(keys.size()));
         return randomKey;
     }
@@ -293,62 +295,31 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayDownloa
         return list;
     }
 
-    /**
-     * Searches for URLs containing the given keywords and retrieves their page titles and short quotes.
-     * 
-     * @param keywords           the keywords to search for
-     * @param shortQuoteCharLimit the character limit for the short quote
-     * @return                   a list of search results, each containing the page title, URL, and short quote
-     * @throws RemoteException   if a remote communication error occurs
-     */
-    public List<String> searchByTerms(String keywords, int shortQuoteCharLimit) throws RemoteException {
+    
+    public List<String> searchByTerms(String keywords, int batchNumber, int shortQuoteCharLimit) throws RemoteException {
 
-        int barrelId = getRandomBarrel();
-        RMIBarrelsInterface barrel = barrels.get(barrelId);
+        int barrelId;
+        long startTime, endTime, searchTime, mean;
+        List<String> results;
+        RMIBarrelsInterface barrel;
         
-        // Initialize a list to store the search results
-        List<String> results = new ArrayList<String>();
+        barrelId = getRandomBarrel();
+        if (barrelId == -1)return new ArrayList<>(); // If there are no barrels, return an empty list
+        barrel = barrels.get(barrelId);
+        
 
         // Get the start time of the search
-        long startTime = System.currentTimeMillis();
+        startTime = System.currentTimeMillis();
         
-        // Get the URLs from the barrel by the given keywords
-        HashSet<String> urls = barrel.getURLsByTerms(keywords);
-
-        for (String term : keywords.split(" ")) {
-            
-            // Update the term count
-            if(!termCounts.containsKey(term))termCounts.put(term, 1);
-            else termCounts.merge(term, 1, Integer::sum);
-        }
-
-        // Verifica se a lista de URLs é nula
-        if (urls == null) {
-            // Add a message to the results list if no results were found
-            results.add("No results found");
-        } else {
-            // For each URL in the list
-            for (String url : urls) {
-                try {
-                    // Get the page title and short quote for the URL
-                    String pageTitle = barrel.getPageTitle(url);
-                    String shortQuote = barrel.getShortQuote(url, shortQuoteCharLimit);
-                    // Add the page title, URL, and short quote to the results list
-                    results.add(pageTitle + " - " + url + "\n" + shortQuote + "\n");
-                } catch (RemoteException e) {
-                    // Threat remote communication exceptions while getting title or short quote
-                    System.err.println("Error in obtaining short quote and/or title: " + e.getMessage());
-                    e.printStackTrace();
-                }
-            }
-        }
+        results = barrel.searchByTerms(keywords, batchNumber, shortQuoteCharLimit);
+        
         // Get the end time of the search
-        long endTime = System.currentTimeMillis();
+        endTime = System.currentTimeMillis();
         
         // Calculate the search time
-        long searchTime = endTime - startTime;
+        searchTime = endTime - startTime;
         
-        long mean = responseTimes.get(barrelId);
+        mean = responseTimes.get(barrelId);
         if (mean == 0) {
             mean = searchTime;
         } else {
@@ -357,87 +328,44 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayDownloa
         // Store the response time for the barrel
         responseTimes.put(barrelId, mean);
 
+        for (String term : keywords.split(" ")) {
+            
+            // Update the term count
+            if(!termCounts.containsKey(term))termCounts.put(term, 1);
+            else termCounts.merge(term, 1, Integer::sum);
+        }
+
         if(adminConsoleClients.size() > 0)mainSemaphore.release(); // only update statistics if there are clients connected, to prevent overflow of the counter
         
         // Return the search results
-        return groupResults(results);
-    }
-
-    /**
-     * Groups the given list of results into pages, with each page containing 10 results.
-     * Adds a page header for every 10 results.
-     *
-     * @param results the list of results to be grouped
-     * @return a new list of grouped results
-     */
-    private List<String> groupResults(List<String> results) {
-        int i = 0;
-        List<String> groupedResults = new ArrayList<>();
-        for (String result : results) {
-            // Add a new page header every 10 results
-            if (i % 10 == 0) {
-                int page = i / 10 + 1;
-                groupedResults.add("\n-------- Page " + page + " --------\n");
-            }
-            // Add the result to the current page
-            groupedResults.add(result);
-            i++;
-        }
-        // Return the grouped results
-        return groupedResults;
+        return results;
     }
     
-    /**
-     * Performs a consult operation by querying a random RMIBarrelsInterface object for pages that link to the specified URL.
-     * 
-     * @param urlConsult the URL to be queried
-     * @return a list of strings representing the query results, or an empty list if no results were found
-     * @throws RemoteException if a remote communication error occurs while querying
-     */
-    public List<String> consult(String urlConsult) throws RemoteException {
+    public List<String> consultURL(String urlConsult, int batchNumber) throws RemoteException {
+        
+        int barrelId;
+        long startTime, endTime, consultTime, mean;
+        List<String> results;
+        RMIBarrelsInterface barrel;
 
-        int barrelId = getRandomBarrel();
-        RMIBarrelsInterface barrel = barrels.get(barrelId);
+        
+        barrelId = getRandomBarrel();
+        if (barrelId == -1)return new ArrayList<>(); // If there are no barrels, return an empty list
+        barrel = barrels.get(barrelId);
 
         // Get the start time of the query
-        long startTime = System.currentTimeMillis();
-        // Initialize a list to store the query results
-        List<String> results = new ArrayList<>();
-        // Create a new thread to perform the query
-        Thread consultThread = new Thread(() -> {
-            try {
-                // Get the list of pages that link to the specified URL
-                List<String> urlsResults = barrel.getPagesThatLinksTo(urlConsult);
-                // Check if the list of URLs is empty
-                if (urlsResults.isEmpty()) {
-                    // Add a message to the results list if no results were found
-                    results.add("No results found");
-                } else {
-                    // Add the list of URLs to the results list
-                    results.addAll(urlsResults);
-                }
+        startTime = System.currentTimeMillis();
 
-            } catch (RemoteException e) {
-                // Threat remote communication exceptions while querying
-                System.err.println("Error while querying: " + e.getMessage());
-            }
-        });
-        // Start the query thread
-        consultThread.start();
+        
+        // Get the list of pages that link to the specified URL
+        results = barrel.getPagesThatLinksTo(urlConsult, batchNumber);
 
-        try {
-            // Wait for the query to complete
-            consultThread.join();
-        } catch (InterruptedException e) {
-            // Handle exceptions while waiting for the query to complete
-            System.out.println("Error while waiting for the query to complete: " + e.getMessage());
-        }
         // Get the end time of the query
-        long endTime = System.currentTimeMillis();
+        endTime = System.currentTimeMillis();
         // Calculate the query time
-        long consultTime = endTime - startTime;
+        consultTime = endTime - startTime;
 
-        long mean = responseTimes.get(barrelId);
+        mean = responseTimes.get(barrelId);
         if (mean == 0) {
             mean = consultTime;
         } else {

@@ -111,22 +111,25 @@ public class IndexStorageBarrel extends UnicastRemoteObject implements RMIBarrel
         // Check if the urlDataMap contains the given URL
         return urlDataMap.containsKey(url);
     }
-    
+
     /**
-     * Retrieves a set of URLs associated with the given terms.
+     * Searches for the given terms in the index and retrieves the URLs associated with the terms.
      *
      * @param terms the terms to search for
-     * @return a LinkedHashSet of URLs associated with the given terms, sorted by page links
+     * @param batchNumber the batch number to be retrieved
+     * @param citationLen the length of the citation to retrieve
+     * @return a list of URLs associated with the given terms
      * @throws RemoteException if a remote exception occurs
      */
-    public LinkedHashSet<String> getURLsByTerms(String terms) throws RemoteException{
+    public List<String> searchByTerms(String terms, int batchNumber, int citationLen) throws RemoteException{
+        
         // Initialize an ArrayList to store individual terms
         ArrayList<String> termsList = new ArrayList<String>();
         // Split the input terms string into individual terms and add them to the list
         for (String term : terms.split(" ")) {
             termsList.add(term);
         }
-
+        
         // Initialize a HashSet to store URLs
         HashSet<String> urls = new HashSet<String>();
 
@@ -136,9 +139,8 @@ public class IndexStorageBarrel extends UnicastRemoteObject implements RMIBarrel
             // Retrieve the set of URLs associated with the current term from the index
             HashSet<Integer> termURLsIndexes = index.get(term);
             // Check if the term is found in the index
-            if (termURLsIndexes == null) {
-                return null; // Term not found
-            }
+            if (termURLsIndexes == null)return new ArrayList<String>(); // If the term is not found, return an empty list
+
             // Initialize a HashSet to store URLs associated with the current term
             HashSet<String> termURLs = new HashSet<>();
             // Iterate over each index in the set of URLs associated with the current term
@@ -156,8 +158,41 @@ public class IndexStorageBarrel extends UnicastRemoteObject implements RMIBarrel
             }
             //System.out.println(urls);
         }
-        // Return a sorted set of URLs by page links
-        return getSortedByPageLinks(urls);
+        
+        // Sort set of URLs by page links
+        LinkedHashSet<String> sortedURLs = getSortedByPageLinks(urls);
+
+        // convert the sortedURLs to an ArrayList
+        List<String> sortedURLsList = new ArrayList<String>(sortedURLs);
+        
+        List<String> result = new ArrayList<String>();
+
+        int start, end;
+        start = batchNumber * 10;
+        if(start >= sortedURLsList.size())return result; // if the batch number is too high, return an empty list
+        end = Math.min(start + 10, sortedURLsList.size());
+
+        sortedURLsList = sortedURLsList.subList(start, end);
+
+        // Get the data associated with the URLs
+        for (String url : sortedURLsList) {
+            // Retrieve the page title and short quote for each URL
+
+            URL urlData = urlDataMap.get(url);
+            StringBuilder sb = new StringBuilder();
+            sb.append(urlData.title + "\n");
+            sb.append(url + "\n");
+
+            if (urlData.textCitation.length() > citationLen) {
+                sb.append(urlData.textCitation.substring(0, citationLen) + "\n");
+            } else {
+                // If textCitation is shorter, append the whole string
+                sb.append(urlData.textCitation + "\n");
+            }
+
+            result.add(sb.toString());
+        }
+        return result;
     }
 
     /**
@@ -167,7 +202,7 @@ public class IndexStorageBarrel extends UnicastRemoteObject implements RMIBarrel
      * @return a LinkedHashSet of URLs sorted by relevance
      * @throws RemoteException if a remote exception occurs
      */
-    public LinkedHashSet<String> getSortedByPageLinks(HashSet<String> termURLs) throws RemoteException{
+    private LinkedHashSet<String> getSortedByPageLinks(HashSet<String> termURLs) throws RemoteException{
         // Initialize a HashMap to store URLs grouped by relevance
         HashMap<Integer, ArrayList<String>> notSortedURLs = new HashMap<Integer, ArrayList<String>>();
 
@@ -205,85 +240,31 @@ public class IndexStorageBarrel extends UnicastRemoteObject implements RMIBarrel
         return sortedURLsSet;
     }
 
-    /**
-        * Retrieves a short quote from the text content of a given URL.
-        * The quote is limited to a specified character limit.
-        *
-        * @param url The URL of the webpage to retrieve the quote from.
-        * @param characterLimit The maximum number of characters for the short quote.
-        * @return The short quote from the text content, limited to the character limit.
-        * @throws RemoteException If an error occurs during the remote method invocation.
-        */
-    public String getShortQuote(String url, int characterLimit)  throws RemoteException{
-        // Retrieve URL data from the map based on the provided URL
-        URL urlData = urlDataMap.get(url);
-        // Check if URL data is found
-        if (urlData == null) {
-            // Return a message indicating that the URL is not found
-            return "URL not found";
-        }
-        // Retrieve the text content from the URL data
-        String text = urlData.textCitation;
-        // Check if text content exists
-        if (text == null) {
-            // If no text content is available, return an empty string
-            return "";
-        }
-        // Extract a short quote from the text content, limited to characterLimit characters or the length of the text if shorter
-        String quote = text.substring(0, Math.min(characterLimit, text.length())) + "...";
-        // Return the short quote
-        return quote;
-    }
-
-    /**
-     * Retrieves the page title for the given URL.
-     *
-     * @param url the URL for which to retrieve the page title
-     * @return the page title of the URL, or "URL not found" if the URL is not found in the map
-     * @throws RemoteException if there is a remote exception while retrieving the page title
-     */
-    public String getPageTitle(String url) throws RemoteException {
-        // Retrieve URL data from the map based on the provided URL
-        URL urlData = urlDataMap.get(url);
-        // Check if URL data is found
-        if (urlData == null) {
-            // Return a message indicating that the URL is not found
-            return "URL not found";
-        }
-        // Return the title of the URL data
-        return urlData.title;
-    }
-
-    /**
-     * Retrieves the list of pages that link to the given URL.
-     * 
-     * @param url The URL to search for in the list of links.
-     * @return An ArrayList of page URLs that link to the given URL.
-     * @throws RemoteException If a remote exception occurs during the method execution.
-     */
-    public ArrayList<String> getPagesThatLinksTo(String url) throws RemoteException{
-        // Initialize an ArrayList to store pages that link to the given URL
-        ArrayList<String> pages = new ArrayList<String>();
     
-        // Iterate over each entry in the urlDataMap
-        for (Map.Entry<String, URL> entry : urlDataMap.entrySet()) {
-            String page = entry.getKey(); // Get the page URL
-            HashSet<Integer> urlsIDs = entry.getValue().links; // Get the set of URLs linked from the page
-            ArrayList<String> links = new ArrayList<String>();
-            
-            // Convert the set of URL IDs to a list of URLs
-            for (int id : urlsIDs) {
-                links.add(urlMap.get(id));
-            }
-    
-            // Check if the list of links contains the given URL
-            if (links.contains(url)) {
-                pages.add(page); // If the URL is found, add the page to the list
-            }
-        }
+    public List<String> getPagesThatLinksTo(String url, int batchNumber) throws RemoteException{
         
-        // Return the list of pages that link to the given URL
-        return pages;
+        int start, end, count = 0;
+        start = batchNumber * 10;
+        end = start + 10;
+
+        // Initialize an ArrayList to store pages that link to the given URL
+        List<String> results = new ArrayList<String>();
+        HashSet<Integer> links;
+        URL urldata = urlDataMap.get(url);
+
+        if(urldata == null)return results; // if the url is not in the urlDataMap, return an empty list
+
+        links = urldata.links;
+        if(links == null)return results; // if the url has no links, return an empty list
+
+        for (Integer link : links) {
+            
+            if(count >= end)break;
+            if(count >= start)results.add(urlMap.get(link));
+            count++;
+        }
+        // Return the list links to the given URL
+        return results;
     }
 
     /**
@@ -469,7 +450,7 @@ public class IndexStorageBarrel extends UnicastRemoteObject implements RMIBarrel
                         url.relevance = 0; // the relevance is 0 because the url is being added for the first time
                         url.title = urlData.title;
                         url.textCitation = urlData.textCitation;
-                        urlMap.put(id, urlData.pageURL); // add the page url to the urlMap
+                        urlMap.put(currentPageId, urlData.pageURL); // add the page url to the urlMap
                         urlDataMap.put(urlData.pageURL, url); // add the page url to the urlDataMap
 
                     }else{// the url is already in the urlDataMap
@@ -637,17 +618,6 @@ public class IndexStorageBarrel extends UnicastRemoteObject implements RMIBarrel
     }
     
     /**
-     * Searches for a specific query in the index storage barrel.
-     *
-     * @param batchNumber the batch number to search in
-     * @param query the query to search for
-     * @return the result of the search as a string
-     */
-    synchronized String search(int batchNumber, String query){
-        return "result";
-    }
-
-    /**
      * Saves a disk message in the RAM and adds it to the processing queue.
      * 
      * @param data The data of the disk message to be saved.
@@ -810,7 +780,7 @@ public class IndexStorageBarrel extends UnicastRemoteObject implements RMIBarrel
      * @param map the map to be sorted
      * @return a new map with the entries sorted by keys in descending order
      */
-    public Map<Integer, ArrayList<String>> sortByKeys(HashMap<Integer, ArrayList<String>> map) {
+    private Map<Integer, ArrayList<String>> sortByKeys(HashMap<Integer, ArrayList<String>> map) {
         // Convert the map entries to a list
         ArrayList<Map.Entry<Integer, ArrayList<String>>> list = new ArrayList<>(map.entrySet());
         

@@ -106,7 +106,7 @@ public class RMIClient extends UnicastRemoteObject implements RMIClientsInterfac
      * @throws MalformedURLException if the URL is not a valid URL
      * @throws InterruptedException if the current thread is interrupted while waiting
      */
-    public void start(RMIGatewayClientsInterface gateway) throws RemoteException, NotBoundException, MalformedURLException, InterruptedException {
+    private void start(RMIGatewayClientsInterface gateway) throws RemoteException, NotBoundException, MalformedURLException, InterruptedException {
         int option;
         do {
             menu();
@@ -114,6 +114,62 @@ public class RMIClient extends UnicastRemoteObject implements RMIClientsInterfac
             sc.nextLine();
             options(gateway, option);
         } while (option != 5);
+    }
+
+    private void searchByTerms(RMIGatewayClientsInterface gateway) throws RemoteException, InterruptedException{
+
+        int batchNumber = 0;
+        String keywords, clientInput;
+        List<String> results;
+
+        System.out.println("Enter the search terms:");
+        keywords = sc.nextLine().toLowerCase();
+
+        System.out.println("Search result: ");
+        results = gateway.searchByTerms(keywords, batchNumber++, characterLimit);
+
+        while (results.size() != 0){
+            
+            System.out.println("Batch : " + batchNumber);
+            
+            for (String res : results){
+                System.out.println(res);
+            }
+
+            System.out.println("Enter 's' to exit or any other key to continue");
+            clientInput = sc.nextLine().toLowerCase();
+            if (clientInput.equals("s")) return;
+            results = gateway.searchByTerms(keywords, batchNumber++, characterLimit);
+        }
+        System.out.println("---End of results---");   
+    }
+
+    private void consultURL(RMIGatewayClientsInterface gateway)throws RemoteException, InterruptedException{
+
+        int batchNumber = 0;
+        String keywords, clientInput;
+        List<String> results;
+
+        System.out.println("Enter the URL you want to query:");
+        keywords = sc.nextLine().toLowerCase();
+
+        System.out.println("Search result: ");
+        results = gateway.consultURL(keywords, batchNumber++);
+
+        while (results.size() != 0){
+            
+            System.out.println("Batch : " + batchNumber);
+            
+            for (String res : results){
+                System.out.println(res);
+            }
+
+            System.out.println("Enter 's' to exit or any other key to continue");
+            clientInput = sc.nextLine().toLowerCase();
+            if (clientInput.equals("s")) return;
+            results = gateway.consultURL(keywords, batchNumber++);
+        }
+        System.out.println("---End of results---");  
     }
 
     /**
@@ -135,19 +191,13 @@ public class RMIClient extends UnicastRemoteObject implements RMIClientsInterfac
                 System.out.println(" ");
                 break;
             case 2:
-                System.out.println("Enter the search terms:");
-                String keywords = sc.nextLine().toLowerCase();
-                List<String> res = gateway.searchByTerms(keywords, characterLimit);
-                System.out.println("Search result: ");
-                printPage(res);
+
+                searchByTerms(gateway);
                 break;
             case 3:
-                System.out.println("Enter the URL you want to query: ");
-                // Query the list of pages linking to a specific page
-                String urlConsult = sc.nextLine();
-                List<String> res1 = gateway.consult(urlConsult);
-                System.out.println("Query result: ");
-                printPage(res1);
+
+                consultURL(gateway);
+                
                 break;
             case 4:
                 // Query real-time updated administration page
@@ -201,7 +251,8 @@ public class RMIClient extends UnicastRemoteObject implements RMIClientsInterfac
             client.start(client.gateway);
         
         }catch (Exception e){
-            e.printStackTrace();
+            System.out.println("Gateway Unreachable, please try again later");
+            // e.printStackTrace();
         }
     }
 }

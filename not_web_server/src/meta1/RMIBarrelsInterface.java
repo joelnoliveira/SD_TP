@@ -2,8 +2,7 @@ package meta1;
 
 import java.rmi.Remote;
 import java.rmi.RemoteException;
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
+import java.util.List;
 
 /**
  * The RMIBarrelsInterface interface defines the methods that can be invoked remotely
@@ -21,42 +20,16 @@ public interface RMIBarrelsInterface extends Remote {
      */
     public boolean hasURL(String url) throws RemoteException;
     
-    /**
-     * Retrieves a set of URLs that contain the given search terms.
-     *
-     * @param terms the search terms
-     * @return a LinkedHashSet of URLs that contain the search terms
-     * @throws RemoteException if a remote communication error occurs
-     */
-    public LinkedHashSet<String> getURLsByTerms(String terms) throws RemoteException;
+    public List<String> searchByTerms(String terms, int batchNumber, int citationLen) throws RemoteException;
     
     /**
-     * Retrieves a short quote from the given URL, limited to the specified character limit.
+     * Retrieves the pages that link to a given URL.
      *
-     * @param url the URL to retrieve the quote from
-     * @param characterLimit the maximum number of characters in the quote
-     * @return a short quote from the URL
+     * @param url the URL to check
+     * @return the pages that link to the URL
      * @throws RemoteException if a remote communication error occurs
      */
-    public String getShortQuote(String url, int characterLimit) throws RemoteException;
-    
-    /**
-     * Retrieves the title of the page associated with the given URL.
-     *
-     * @param url the URL to retrieve the page title from
-     * @return the title of the page
-     * @throws RemoteException if a remote communication error occurs
-     */
-    public String getPageTitle(String url) throws RemoteException;
-    
-    /**
-     * Retrieves a list of URLs that link to the given URL.
-     *
-     * @param url the URL to retrieve the linking URLs from
-     * @return an ArrayList of URLs that link to the given URL
-     * @throws RemoteException if a remote communication error occurs
-     */
-    public ArrayList<String> getPagesThatLinksTo(String url) throws RemoteException;
+    public List<String> getPagesThatLinksTo(String url, int batchNumber) throws RemoteException;
     
     /**
      * Retrieves the ID of the RMIBarrels object.

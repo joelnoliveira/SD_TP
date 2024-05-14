@@ -15,24 +15,27 @@ public interface RMIGatewayClientsInterface extends Remote {
      */
     public void clientAddIndexerUrl(String url) throws RemoteException, InterruptedException;
     
+
     /**
-     * Searches for documents containing the specified keywords and returns a list of matching documents.
+     * Searches for documents that contain the specified keywords.
      * 
      * @param keywords the keywords to search for
-     * @param shortQuoteCharLimit the character limit for short quotes in the search results
-     * @return a list of matching documents
+     * @param batchNumber the number of the batch to retrieve
+     * @param shortQuoteCharLimit the maximum number of characters in a short quote
+     * @return a list of documents that contain the specified keywords
      * @throws RemoteException if a remote communication error occurs
      */
-    public List<String> searchByTerms(String keywords, int shortQuoteCharLimit) throws RemoteException;
-    
+    public List<String> searchByTerms(String keywords, int batchNumber, int shortQuoteCharLimit) throws RemoteException;
+
     /**
-     * Retrieves the content of a document from the specified URL.
+     * Retrieves the pages that link to a given URL.
      * 
-     * @param urlConsult the URL of the document to retrieve
-     * @return the content of the document
+     * @param url the URL to check
+     * @param batchNumber the number of the batch to retrieve
+     * @return the pages that link to the URL
      * @throws RemoteException if a remote communication error occurs
      */
-    public List<String> consult(String urlConsult) throws RemoteException;
+    public List<String> consultURL(String urlConsult, int batchNumber) throws RemoteException;
     
     /**
      * Subscribes the client to the admin console.
