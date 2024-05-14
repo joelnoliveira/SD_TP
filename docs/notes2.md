@@ -19,3 +19,8 @@
 - Maybe just save statistics information on the gateway just to be simpler, but maybe in real life it would be more appropriate to save said statistics in the barrels and then later retrieve it.
 - Maybe be the search count of words should be saved in decreasing size, but then it could have problems with concurrency, so we opted by each time retrieve all the words count and then order it.
 
+## What do display when an exception happens?
+- Maybe have a error page that has costumizable info and error number.
+
+## What should happen when a User tries to access a non existing page?
+

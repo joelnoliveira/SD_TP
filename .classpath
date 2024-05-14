@@ -3,6 +3,6 @@
     <classpathentry kind="src" path="web_server/backend/src"/>
     <classpathentry kind="src" path="not_web_server/src"/>
     <classpathentry kind="lib" path="not_web_server/lib/jars/jsoup-1.17.2.jar"/>
-    <classpathentry kind="lib" path="web_server/backend/lib/jars/gateway_client_dependencies.jar"/>
+    <classpathentry kind="lib" path="web_server/backend/lib/jars/meta1.jar"/>
     <classpathentry kind="output" path="bin"/>
 </classpath>

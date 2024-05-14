@@ -39,7 +39,7 @@
 		</dependency>
 
 		<dependency>
-			<groupId>googol.meta1</groupId>
+			<groupId>googol</groupId>
 			<artifactId>meta1</artifactId>
 			<version>1.0</version>
 			<scope>system</scope>
