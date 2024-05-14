@@ -1,4 +1,4 @@
-package client;
+package meta1;
 
 import java.io.FileInputStream;
 import java.io.InputStream;
@@ -10,8 +10,6 @@ import java.util.Properties;
 import java.util.Scanner;
 import java.net.MalformedURLException;
 import java.rmi.NotBoundException;
-
-import gateway_client_dependencies.*;
 
 /**
  * The RMIClient class represents a client that interacts with the RMIServer through RMI (Remote Method Invocation).

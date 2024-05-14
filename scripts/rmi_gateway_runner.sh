@@ -29,6 +29,6 @@ fi
 
 cd bin
 
-java -cp . gateway.RMIGateway ../$input_path > ../$output_path
+java -cp . meta1.RMIGateway ../$input_path > ../$output_path
 
 cd ..

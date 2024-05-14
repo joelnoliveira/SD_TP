@@ -40,10 +40,10 @@
 
 		<dependency>
 			<groupId>googol.meta1</groupId>
-			<artifactId>gateway_client_dependencies</artifactId>
+			<artifactId>meta1</artifactId>
 			<version>1.0</version>
 			<scope>system</scope>
-			<systemPath>${project.basedir}/../lib/jars/gateway_client_dependencies.jar</systemPath>
+			<systemPath>${project.basedir}/../lib/jars/meta1.jar</systemPath>
 		</dependency>
 	</dependencies>
 

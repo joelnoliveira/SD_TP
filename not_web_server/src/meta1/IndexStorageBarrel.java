@@ -1,4 +1,4 @@
-package barrels;
+package meta1;
 
 import java.io.EOFException;
 import java.io.File;
@@ -32,9 +32,6 @@ import java.util.Scanner;
 import java.util.StringTokenizer;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.Semaphore;
-
-import downloader.URLData;
-import gateway.RMIGatewayBarrelsInterface;
 
 
 /**

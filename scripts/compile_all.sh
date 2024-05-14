@@ -4,15 +4,10 @@
 
 general_path="not_web_server/src/" # default path to the packages 
 jsoup_path="not_web_server/lib/jars/jsoup-1.17.2.jar" # default path to the jsoup jar
-g_c_d_jar_path="web_server/lib/jars/gateway_client_dependencies.jar" # default path to the gateway client dependencies jar
-mvn_path="web_server/backend/" # default path to the web server
+meta1_jar_path="web_server/lib/jars/meta1.jar" # default path to the gateway client dependencies jar
 
 # default paths to the packages
-gateway_path="${general_path}gateway/"
-downloader_path="${general_path}downloader/"
-barrel_path="${general_path}barrels/"
-client_path="${general_path}client/"
-g_c_d_path="${general_path}gateway_client_dependencies/" # path to the gateway client dependencies
+meta1_path="${general_path}meta1/"
 
 # Create the bin and logs in case they don't exist 
 mkdir -p bin
@@ -24,27 +19,14 @@ if [ "$1" = "-delete_bin_before_compile" ] || [ "$1" = "-clean_all" ]; then
     rm -rf bin/*
 fi
 
-echo "Compiling RMIGateway"
-# Compile the RMIGateway
-javac -d bin ${gateway_path}RMIGateway.java ${gateway_path}RMIGatewayDownloadersInterface.java ${gateway_path}RMIGatewayBarrelsInterface.java ${barrel_path}RMIBarrelsInterface.java ${g_c_d_path}RMIGatewayClientsInterface.java ${g_c_d_path}RMIClientsInterface.java
-
-echo "Compiling Downloader"
-# Compile the Downloader
-javac -d bin -cp .:bin:${jsoup_path} ${downloader_path}Downloader.java ${downloader_path}URLData.java ${gateway_path}RMIGatewayDownloadersInterface.java
-
-echo "Compiling IndexStorageBarrel"
-# Compile the IndexStorageBarrel
-javac -d bin ${barrel_path}IndexStorageBarrel.java ${downloader_path}URLData.java ${barrel_path}RMIBarrelsInterface.java ${gateway_path}RMIGatewayBarrelsInterface.java
-
-echo "Compiling RMIClient"
-# Compile the RMIClient
-javac -d bin ${client_path}RMIClient.java ${g_c_d_path}RMIClientsInterface.java ${g_c_d_path}RMIGatewayClientsInterface.java
+echo "Compiling meta1 package"
+# Compile the meta1 package
+javac -d bin ${meta1_path}* -cp ${jsoup_path}
 
 # If there happened no errors in the last compilation create a jar files for the gateway_client_dependencies package to be used by the web server
 if [ $? -eq 0 ]; then
     echo "Creating jar files for the client"
-    jar -cvf $g_c_d_jar_path -C bin gateway_client_dependencies
-
+    jar -cvf $meta1_jar_path -C bin meta1
 fi 
 
 # In case there is a flag -delete_logs or -clean_all, delete everything in the logs folder

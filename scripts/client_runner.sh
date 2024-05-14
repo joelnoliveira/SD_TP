@@ -34,6 +34,6 @@ fi
 
 cd bin
 
-java client.RMIClient $id ../$input_path
+java meta1.RMIClient $id ../$input_path
 
 cd ..

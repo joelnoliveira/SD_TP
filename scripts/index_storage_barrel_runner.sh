@@ -40,6 +40,6 @@ fi
 
 cd bin
 
-java barrels.IndexStorageBarrel $id ../$input_path >> ../$output_path
+java meta1.IndexStorageBarrel $id ../$input_path >> ../$output_path
 
 cd ..

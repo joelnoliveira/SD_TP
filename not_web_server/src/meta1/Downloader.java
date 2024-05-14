@@ -1,4 +1,4 @@
-package downloader;
+package meta1;
 
 import org.jsoup.Jsoup;
 
@@ -13,7 +13,8 @@ import org.jsoup.nodes.Element;
 import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
 
-import gateway.RMIGatewayDownloadersInterface;
+import meta1.RMIGatewayDownloadersInterface;
+import meta1.URLData;
 
 import java.util.HashMap;
 import java.util.Properties;

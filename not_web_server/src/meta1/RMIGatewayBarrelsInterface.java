@@ -1,8 +1,7 @@
-package gateway;
+package meta1;
 
 import java.rmi.Remote;
 import java.rmi.RemoteException;
-import barrels.RMIBarrelsInterface;
 
 /**
  * The RMIGatewayBarrelsInterface interface defines the methods for interacting with the gateway for barrels in a distributed system using RMI.
