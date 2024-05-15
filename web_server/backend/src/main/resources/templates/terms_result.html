@@ -24,8 +24,16 @@
 </head>
 <body>
     <div>
-        <div th:each="term, iterStat : ${termsResult}">
-            <textfield th:text="${term}"></textarea>
-        </div>
-    </div>  
+        <form action="/terms-result" id = "form" method="post">
+            <h1>Terms Search Result</h1>
+            <h2 th:text="${batchCount}"> batchCount: </h2> 
+            <div th:each="term, iterStat : ${termsResult}">
+                <textfield th:text="${term}"></textfield>
+            </div>
+        </form>
+        <input type="hidden" name="input" form="form" th:value="${input}" />
+        <input type="hidden" name="batchCount" form="form" th:value="${batchCount}" />
+        <button th:if="${previous}!=-1" type="submit" form="form" name="action" value="Previous">Previous</button>
+        <button th:if="${next}!=-1" type="submit" form="form" name="action" value="Next">Next</button>
+    </div> 
 </body>

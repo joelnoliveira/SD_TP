@@ -408,9 +408,13 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayDownloa
      */
     private List<String> getMeanResponseTimeByBarrel() {
 
+        long times;
         List<String> responseTimesList = new ArrayList<>();
+        
         for (int barrelId : barrels.keySet()) {
-            long times = responseTimes.get(barrelId);
+            
+            if(responseTimes.get(barrelId) == null)times = 0;
+            else times = responseTimes.get(barrelId);
             responseTimesList.add("Barrel" + barrelId + " - " + times + " ms");
         }
         return responseTimesList;

@@ -2,6 +2,8 @@ package com.ds.googol.controller;
 
 import jakarta.annotation.Resource;
 
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Scope;
@@ -63,12 +65,58 @@ public class PageController {
 	@PostMapping("/search-terms")
 	public String searchTermsResult(@RequestParam("input") String terms, Model model) {
 		
-		
-		model.addAttribute("termsResult", client.searchByTerms(terms,0));
+		int next = 10;
+		List<String> termsResult = client.searchByTerms(terms,0);
+
+		if(termsResult.size() < 10){
+
+			next = -1;
+			if(termsResult.size() == 0){
+				termsResult.add("No results found");
+			}
+		}
+		model.addAttribute("termsResult", termsResult);
+		model.addAttribute("previous", -1);
+		model.addAttribute("next", next);
+		model.addAttribute("input", terms);
+		model.addAttribute("batchCount", 0);
 		return "terms_result";
 	}
 
+	@PostMapping("/terms-result")
+	public String termsResult(@RequestParam("action") String action,
+	@RequestParam("input") String terms,
+	@RequestParam("batchCount") int batchCount, Model model) {
 
+		int previous, next;
+		List<String> termsResult;
+
+		if ("Previous".equals(action)) {
+            // Previous button was pressed
+			batchCount -= 1;
+			if(batchCount <= 0){
+				batchCount = 0;
+				previous = -1;
+				next = 1;
+			}else previous = 1;
+        } else {
+            // Next button was pressed
+			batchCount += 1;
+			previous = 1;
+        }
+
+		termsResult = client.searchByTerms(terms,batchCount);
+		
+		if(termsResult.size() < 10)next = -1;
+		else next = 1;
+		
+		model.addAttribute("termsResult", termsResult);
+		model.addAttribute("input", terms);
+		model.addAttribute("batchCount", batchCount);
+		model.addAttribute("previous", previous);
+		model.addAttribute("next", next);
+		return "terms_result";
+	}
 
 	@GetMapping("/counter")
 	public String counter(Model model) {
