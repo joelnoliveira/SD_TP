@@ -53,7 +53,7 @@ public class WebClient implements RMIClientsInterface{
         }
     }
     
-    public List<String> consult(String urlConsult, int batchCount) {
+    public List<String> consultURL(String urlConsult, int batchCount) {
         
         try{
             return gateway.consultURL(urlConsult, batchCount);

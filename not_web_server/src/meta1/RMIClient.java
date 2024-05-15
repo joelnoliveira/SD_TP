@@ -77,27 +77,6 @@ public class RMIClient extends UnicastRemoteObject implements RMIClientsInterfac
     }
 
     /**
-     * Prints the contents of a list of strings, with pagination.
-     * 
-     * @param res the list of strings to be printed
-     */
-    private void printPage(List<String> res) {
-        String clientInput = "";
-        int i = 0;
-        for (String r : res) {
-            System.out.println(r);
-            if (i % 10 == 0 && i != 0) {
-                System.out.println("Enter 's' to exit or any other key to continue");
-                clientInput = sc.nextLine().toLowerCase();
-                if (clientInput.equals("s")) {
-                    break;
-                }
-            }
-            i++;
-        }
-    }
-
-    /**
      * Starts the RMIClient by displaying a menu and processing user input until the user chooses to exit.
      * 
      * @param gateway the RMIGatewayClientsInterface object used for communication with the server
@@ -151,7 +130,7 @@ public class RMIClient extends UnicastRemoteObject implements RMIClientsInterfac
         List<String> results;
 
         System.out.println("Enter the URL you want to query:");
-        keywords = sc.nextLine().toLowerCase();
+        keywords = sc.nextLine();//.toLowerCase();
 
         System.out.println("Search result: ");
         results = gateway.consultURL(keywords, batchNumber++);
