@@ -1,5 +1,7 @@
 package com.ds.googol.beans;
+import java.net.MalformedURLException;
 import java.rmi.Naming;
+import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.util.List;
 
@@ -11,18 +13,13 @@ public class WebClient implements RMIClientsInterface{
     private int id, characterLimit;
     private RMIGatewayClientsInterface gateway;
 
-    public WebClient(int id, String registryName, int characterLimit) {
+    public WebClient(int id, String registryName, int characterLimit)throws RemoteException, MalformedURLException, NotBoundException{
         this.id = id;
         this.characterLimit = characterLimit;
         
-        try{
             
-            gateway = (RMIGatewayClientsInterface) Naming.lookup(registryName);
-            System.out.println("WebClient started: " + id);
-        
-        }catch (Exception e){
-            e.printStackTrace();
-        }
+        gateway = (RMIGatewayClientsInterface) Naming.lookup(registryName);
+        System.out.println("WebClient started: " + id);
     }
 
     public int getId() {

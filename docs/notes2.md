@@ -23,4 +23,11 @@
 - Maybe have a error page that has costumizable info and error number.
 
 ## What should happen when a User tries to access a non existing page?
+- Already implemented with error.html
+
+## IF the users enters for the first time at the time the gateway is down he will not be able
+- Solved, web client throws an exception in that case and the webserver catches it, throwing other exception with a message, so the user can be awere
+
+##TODO
+- If time remains fix the template, because if the text is too long it will be way from the borders of the screen and unreachable.
 
