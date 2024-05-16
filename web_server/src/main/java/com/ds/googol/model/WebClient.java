@@ -30,14 +30,13 @@ public class WebClient extends UnicastRemoteObject implements RMIClientsInterfac
     public boolean addURL(String url) {
 
         try{
-            gateway.clientAddIndexerUrl(url);
+            if(gateway.clientAddIndexerUrl(url))return true;
 
         }catch (Exception e){
             e.printStackTrace();
-            return false;
         }
 
-        return true;
+        return false;
     }
 
     public List<String> searchByTerms(String terms, int batchCount) {

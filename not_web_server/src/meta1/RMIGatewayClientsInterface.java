@@ -13,7 +13,7 @@ public interface RMIGatewayClientsInterface extends Remote {
      * @throws RemoteException if a remote communication error occurs
      * @throws InterruptedException if the thread is interrupted while waiting
      */
-    public void clientAddIndexerUrl(String url) throws RemoteException, InterruptedException;
+    public boolean clientAddIndexerUrl(String url) throws RemoteException, InterruptedException;
     
 
     /**

@@ -165,8 +165,8 @@ public class RMIClient extends UnicastRemoteObject implements RMIClientsInterfac
                 System.out.println("Enter the URL you want to index:");
                 // Index the URL
                 String url = sc.nextLine();
-                gateway.clientAddIndexerUrl(url);
-                System.out.println("URL " + url + " indexed successfully");
+                if(gateway.clientAddIndexerUrl(url))System.out.println("URL " + url + " indexed successfully");
+                else System.out.println("URL was already indexed");
                 System.out.println(" ");
                 break;
             case 2:

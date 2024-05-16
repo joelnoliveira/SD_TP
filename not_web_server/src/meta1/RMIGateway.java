@@ -162,10 +162,17 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayDownloa
      * @param url the URL to be added to the queue
      * @throws InterruptedException if the thread is interrupted while waiting to add the URL to the queue
      */
-    public synchronized void clientAddIndexerUrl(String url) throws InterruptedException {
+    public synchronized boolean clientAddIndexerUrl(String url) throws InterruptedException, RemoteException{
         
+        // check if the URL is already in the queue or in a barrel, don't add it again
+        if (wasUrlQueued(url) || wasUrlIndexed(url)) {
+            System.out.println(LocalDateTime.now() + " : URL " + url + " was already queued or indexed.");
+            return false;
+        }
+
         urlQueue.put(url);
         linkSearchCount = 0; // Reset the linkSearchCount, since the client is adding a new URL to be recursively indexed
+        return true;
     }
 
     /**
@@ -178,7 +185,17 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayDownloa
         // synchronized is used to guarantee that the add url and checking if the URL is already there are atomic operations
         
         if(linkSearchCount > linkSearchDepth) return;
-            
+        
+        // If the URL is already in the queue or in a barrel, don't add it again
+        try {
+            if (wasUrlQueued(url) || wasUrlIndexed(url)) {
+
+                System.out.println(LocalDateTime.now() + " : URL " + url + " was already queued or indexed.");
+                return;
+            }
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
         urlQueue.put(url);
         linkSearchCount++;
     }
@@ -201,12 +218,16 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayDownloa
      * @throws RemoteException if a remote exception occurs while checking the URL
      */
     public boolean wasUrlIndexed(String url) throws RemoteException {
+
+        int barrelId;
         try{
-            for (RMIBarrelsInterface barrel : barrels.values()) {
-            if (barrel.hasURL(url)) {
-                return true;
-            }
-        }
+            barrelId = getRandomBarrel();
+
+            if (barrelId == -1)return false; // If there are no barrels, return false
+
+            RMIBarrelsInterface barrel = barrels.get(barrelId);
+            if (barrel.hasURL(url))return true;
+
         } catch (RemoteException e) {
             System.err.println("Erro ao verificar se a URL foi indexada: " + e.getMessage());
         }

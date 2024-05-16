@@ -1,6 +1,7 @@
 package com.ds.googol.controller;
 
 import jakarta.annotation.Resource;
+
 import java.rmi.RemoteException;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -106,7 +107,7 @@ public class PageController{
 		if(client.addURL(url))
 			model.addAttribute("message", "URL added successfully");
 		else
-			model.addAttribute("message", "URL could not be added");
+			model.addAttribute("message", "URL could not be added either by an error or because it was already indexed");
 		return "message";
 	}
 
@@ -263,6 +264,22 @@ public class PageController{
 		return "admin";
 	}
 
+	// @GetMapping("/api")
+	// public String api(Model model) {
+
+	// 	HackerNewsAPI api = new HackerNewsAPI();
+
+	// 	ArrayList<String> terms = new ArrayList<String>();
+	// 	terms.add("nuclear");
+	// 	terms = api.printTopStoryUrls(terms);
+		
+	// 	// print terms
+	// 	for(String term : terms){
+	// 		System.out.println(term);
+	// 	}
+
+	// 	return "index";
+	// }
 	@MessageMapping("/closed")
 	public void onClose(String message) {
 		// receive a message from the browser when the admin page is closed
