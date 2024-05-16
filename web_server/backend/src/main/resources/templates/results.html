@@ -3,27 +3,10 @@
 <head> 
     <title>Terms Search Result</title> 
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-    <style>
-        body {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            background: #f3f3f3;
-            font-family: Arial, sans-serif;
-        }
-        ul {
-            list-style-type: none;
-            padding: 0;
-        }
-        .option-list {
-            text-align: left;
-        }
-    </style>
+    <link href="/main.css" rel="stylesheet">
 </head>
 <body>
-    <div>
+    <div id="main-content" class="container">
         <form th:action="${actionUrl}" id = "form" method="post">
             <h1 th:text="'Search Results for: ' + ${input}"></h1>
             <h2 th:text="'Current Batch: ' + ${batchCount}"> batchCount: </h2> 

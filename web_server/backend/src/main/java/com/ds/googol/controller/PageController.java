@@ -1,32 +1,30 @@
 package com.ds.googol.controller;
 
 import jakarta.annotation.Resource;
-
+import java.rmi.RemoteException;
 import java.util.List;
-
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Scope;
 import org.springframework.context.annotation.ScopedProxyMode;
-// Anotations
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.context.WebApplicationContext;
-import org.springframework.web.servlet.NoHandlerFoundException;
 import org.springframework.ui.Model;
-
-import com.ds.googol.beans.WebClient;
-
-
-
+import org.springframework.messaging.handler.annotation.MessageMapping;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import com.ds.googol.model.WebClient;
+import com.ds.googol.model.Server;
 
 @Controller
-public class PageController {
+public class PageController{
     
-	private int id_counter = Integer.MAX_VALUE;
+	private int idCounter = Integer.MAX_VALUE;
+	private int activeAdminPages;
+	private Server server;
 
 	@Resource(name = "sessionScopedNumberGenerator")
     private WebClient client;
@@ -37,21 +35,41 @@ public class PageController {
 	@Value("${characterLimit}")// get the value from the application.properties file
 	private int characterLimit;
 
-    @GetMapping("/index")
-	public String index() {
-		
-		return "index";
+	@Autowired
+	public PageController(SimpMessagingTemplate template) {
+
+		activeAdminPages = 0;
+
+		try {
+			server = new Server(-1, template);
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+	@Bean
+	@Scope(value = WebApplicationContext.SCOPE_APPLICATION, proxyMode = ScopedProxyMode.TARGET_CLASS)
+	public Server serverGenerator(){
+
+		return null;
 	}
 	
 	@Bean
 	@Scope(value = WebApplicationContext.SCOPE_SESSION, proxyMode = ScopedProxyMode.TARGET_CLASS)
 	public WebClient sessionScopedNumberGenerator() {
 		try {
-			return new WebClient(id_counter--, registryName, characterLimit);
+			return new WebClient(idCounter--, registryName, characterLimit);
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw new RuntimeException("Gateway is down, cannot create WebClient. Please try again later");
 		}
+	}
+
+	@GetMapping("/index")
+	public String index() {
+		
+		return "index";
 	}
 
 	@PostMapping("/index")
@@ -65,6 +83,8 @@ public class PageController {
 				return "redirect:/search-page";
 			case "2":
 				return "redirect:/search-page?type=url";
+			case "3":
+				return "redirect:/admin";
 			default:
 				break;
 		}
@@ -73,6 +93,7 @@ public class PageController {
 
 	@GetMapping("/add-url")
 	public String addURL(Model model) {
+
 		model.addAttribute("title", "Add URL");
 		model.addAttribute("actionDescription", "Type the URL you want to add:");
 		model.addAttribute("actionUrl", "/add-url");
@@ -93,17 +114,19 @@ public class PageController {
 	public String searchTerms(Model model, @RequestParam(name = "type", required=false, defaultValue = "term") String type){
 
 		if(type.equals("term")){
+
 			model.addAttribute("title", "Terms Search");
 			model.addAttribute("actionDescription", "Type the terms you want to search for:");
 			model.addAttribute("actionUrl", "/search");
 
 		}else if(type.equals("url")){
+
 			model.addAttribute("title", "Links to URL Search");
 			model.addAttribute("actionDescription", "Type the URL you want to search for:");
 			model.addAttribute("actionUrl", "/search?type=url");
-
 		}
 		else{
+
 			model.addAttribute("error", "Bad request");
 			model.addAttribute("status", "400");
 			model.addAttribute("message", "The request could not be understood by the server due to malformed syntax: type="+type);
@@ -155,8 +178,10 @@ public class PageController {
 
 				String[] tokens = string.split("\n");
 				StringBuilder sb = new StringBuilder();
-	
-				sb.append(tokens[0]+"<br>");
+				
+				// TODO: change the replaces and the <br> tags to be done in the meta1 stuff
+				sb.append(tokens[0]+"<br>");// add a line break after the term
+				// add a clickable link to the URL if it exists
 				if(tokens.length > 1)sb.append("<a href=\""+tokens[1]+"\">"+ tokens[1] +"</a><br>");
 	
 				for(int j = 2; j < tokens.length; j++){
@@ -166,7 +191,7 @@ public class PageController {
 				result.set(i, sb.toString());
 
 			}else{
-
+				// add a clickable link to the URL if it exists
 				result.set(i, "<a href=\""+ string.replace("\n", "") +"\">"+ string +"</a><br>");
 			}
 		}
@@ -203,6 +228,60 @@ public class PageController {
         }
 
 		return "redirect:/search?input=" + terms + "&batchCount="+ batchCount + "&type=" + type;
+	}
+
+	@GetMapping("/admin")
+	public String admin(Model model) {
+
+		String message;
+		try {
+			// check if the server is already subscribed to the admin console
+			if(activeAdminPages==0){
+				message = server.subscribeAdminConsole();
+				
+			}else{
+				
+				message = server.getMessage();
+			}
+			
+			model.addAttribute("message", message);
+			activeAdminPages++;
+			System.out.println("Active Admin Pages " + activeAdminPages);
+			
+		} catch (RemoteException e) {
+			model.addAttribute("error", "Internal Server Error");
+			model.addAttribute("status", "500");
+			model.addAttribute("message", "The server encountered an unexpected condition which prevented it from fulfilling the request: Error subscribing to admin console: Possibly Gateway gone down");
+			return "error";
+
+		}catch (Exception e) {
+			model.addAttribute("error", "Internal Server Error");
+			model.addAttribute("status", "500");
+			model.addAttribute("message", "The server encountered an unexpected condition which prevented it from fulfilling the request: Error subscribing to admin console: Possibly Gateway was down when first connecting to the server");
+			return "error";
+		}
+		return "admin";
+	}
+
+	@MessageMapping("/closed")
+	public void onClose(String message) {
+		// receive a message from the browser when the admin page is closed
+
+		System.out.println("Message received " + message);
+
+		if(activeAdminPages>0)activeAdminPages--;
+
+		System.out.println("Active Admin Pages " + activeAdminPages);
+
+		if(activeAdminPages==0){
+
+			try {// if there are no more active admin pages, unsubscribe from the admin console
+				server.unsubscribeAdminConsole();
+			} catch (Exception e) {
+				e.printStackTrace();
+				throw new RuntimeException("Error unsubscribing from admin console");
+			}
+		}
 	}
 
 	@GetMapping("/counter")

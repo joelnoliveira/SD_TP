@@ -1,14 +1,15 @@
-package com.ds.googol.beans;
+package com.ds.googol.model;
 import java.net.MalformedURLException;
 import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
+import java.rmi.server.UnicastRemoteObject;
 import java.util.List;
 
 import meta1.RMIClientsInterface;
 import meta1.RMIGatewayClientsInterface;
 
-public class WebClient implements RMIClientsInterface{
+public class WebClient extends UnicastRemoteObject implements RMIClientsInterface{
 
     private int id, characterLimit;
     private RMIGatewayClientsInterface gateway;
@@ -63,9 +64,5 @@ public class WebClient implements RMIClientsInterface{
 
     @Override
     public void updateAdminConsole(String arg0) throws RemoteException {
-        System.out.println("Hello from WebClient");
     }
-
-
-
 }
