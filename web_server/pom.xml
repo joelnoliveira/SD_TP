@@ -83,7 +83,7 @@
 			<artifactId>meta1</artifactId>
 			<version>1.0</version>
 			<scope>system</scope>
-			<systemPath>${project.basedir}/../lib/jars/meta1.jar</systemPath>
+			<systemPath>${project.basedir}/lib/jars/meta1.jar</systemPath>
 		</dependency>
 	</dependencies>
 
