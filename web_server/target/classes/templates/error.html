@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title th:text="${error}"></title>
+</head>
+<body>
+    <h1 th:text="${error} + ' ' + ${status}"></h1>
+    <!-- If status = 404 -->
+    <p th:if="${status} == 404" th:text="'The page you are looking for does not exist!'"></p>
+    <p th:text="${message}"></strong></p>
+</body>
+</html>

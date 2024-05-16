@@ -2,7 +2,7 @@
 *.class
 
 HELP.md
-target/
+target/f
 !/web_server/.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/

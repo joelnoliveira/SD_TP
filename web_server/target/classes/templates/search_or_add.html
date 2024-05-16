@@ -1,0 +1,33 @@
+<!DOCTYPE HTML>
+<html>
+<head> 
+    <title th:text="${title}">Default Title</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <link href="/main.css" rel="stylesheet">
+</head>
+<body>
+    <div id="main-content" class="container">
+        <p th:text="${actionDescription}"></p>
+        <form th:action="${actionUrl}" method="post">
+            <input type="text" id="input" name="input" oninput="checkInput()">
+            <input type="submit" id="submit" value="Submit">
+        </form>
+
+        <script>
+        function checkInput() {
+
+            var input = document.getElementById('input').value.trim();
+            var submitButton = document.getElementById('submit');
+            
+            if(input) {
+                submitButton.disabled = false;
+            } else {
+                submitButton.disabled = true;
+            }
+        }
+        // Call checkInput on page load in case the input is pre-filled or to initialize the button state
+        window.onload = checkInput;
+        </script>
+    </div>
+</body>
+</html>

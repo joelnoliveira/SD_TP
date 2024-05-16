@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Status</title>
+    <script th:inline="javascript">
+        /* <![CDATA[ */
+        var message = /*[[${message}]]*/ 'No message available';
+        alert(message);
+        /* ]]> */
+    </script>
+</head>
+<body>
+    <!-- Redirect to the index -->
+    <script th:inline="javascript">
+        /* <![CDATA[ */
+        window.location.href = '/index';
+        /* ]]> */
+    </script>
+</body>
+</html>

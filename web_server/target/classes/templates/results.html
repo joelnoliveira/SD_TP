@@ -1,0 +1,20 @@
+<!DOCTYPE HTML>
+<html>
+<head> 
+    <title>Terms Search Result</title> 
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <link href="/main.css" rel="stylesheet">
+</head>
+<body>
+    <div id="main-content" class="container">
+        <form th:action="${actionUrl}" id = "form" method="post">
+            <h1 th:text="'Search Results for: ' + ${input}"></h1>
+            <h2 th:text="'Current Batch: ' + ${batchCount}"> batchCount: </h2> 
+            <div th:each="term, iterStat : ${termsResult}">
+                <textfield th:utext="${term} + '<br>'"></textfield>
+            </div>
+        </form>
+        <button th:if="${previous}!=-1" type="submit" form="form" name="action" value="Previous">Previous</button>
+        <button th:if="${next}!=-1" type="submit" form="form" name="action" value="Next">Next</button>
+    </div> 
+</body>
