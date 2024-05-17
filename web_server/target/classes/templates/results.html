@@ -14,6 +14,7 @@
                 <textfield th:utext="${term} + '<br>'"></textfield>
             </div>
         </form>
+        <a href="/" class="button">Home</a>
         <button th:if="${previous}!=-1" type="submit" form="form" name="action" value="Previous">Previous</button>
         <button th:if="${next}!=-1" type="submit" form="form" name="action" value="Next">Next</button>
     </div> 

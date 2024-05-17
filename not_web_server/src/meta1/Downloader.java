@@ -333,7 +333,7 @@ public class Downloader {
                             
                             // if there was no tokens nor text citation, the page is not valid so we don't send it
                             if(urlData.tokens.length() == 0 && urlData.textCitation.length() == 0){
-                                System.out.println("The page " + urlData.pageURL + " is not valid, it will not be sent to the barrels");
+                                System.out.println(LocalDateTime.now() + "Error The page " + urlData.pageURL + " is not valid, it will not be sent to the barrels");
                                 continue;
                             }
                                 
@@ -369,7 +369,7 @@ public class Downloader {
                             // ------------------------- Scanner -------------------------
                             
                         }   catch (ConnectException e) {
-                                System.out.println(LocalDateTime.now() + " : Connection refused + " + e.getMessage());
+                                System.out.println(LocalDateTime.now() + " : Eror Connection refused + " + e.getMessage());
                                 
                             }
                         catch (Exception e) {
@@ -387,14 +387,14 @@ public class Downloader {
                 // ------------------------- REGISTRY -------------------------
 
             } catch (IOException e) {
-                System.out.println("Error creating multicast socket: " + e.getMessage());
+                System.out.println(LocalDateTime.now() + "Error creating multicast socket: " + e.getMessage());
             } finally {
                 if (downloader.socket != null) {
                     try {
                         downloader.socket.leaveGroup(socketAddress, networkInterface);
                         downloader.socket.close();
                     } catch (IOException e) {
-                        System.out.println("Error closing multicast socket: " + e.getMessage());
+                        System.out.println(LocalDateTime.now() + "Error closing multicast socket: " + e.getMessage());
                     }
                 }
             }

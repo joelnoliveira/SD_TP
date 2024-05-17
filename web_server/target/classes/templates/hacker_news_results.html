@@ -8,9 +8,10 @@
 <body>
     <div id="main-content" class="container">
         <h1>Hacker News URLs Indexation</h1>
-        <p>The follow URLs will be indexed (if none is listed, then none was found):</p>
+        <h2 th:text="'Search = ' + ${input}"></h2>
+        <p>The follow URLs will be sent for Indexation (if none is listed, then none was found):</p>
         <div th:each="url, iterStat : ${urls}">
             <a th:href="@{${url}}" th:text="${url}"></a><br>
-    </div>
+        </div>
     </div> 
 </body>

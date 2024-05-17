@@ -3,7 +3,6 @@ package com.ds.googol.controller;
 import jakarta.annotation.Resource;
 
 import java.rmi.RemoteException;
-import java.util.ArrayList;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -277,31 +276,31 @@ public class PageController{
 
 		return "search_or_add";
 	}
-
 	
-	// @GetMapping("/hacker-news-search")
-	// public String api(@RequestParam("input") String input) {
-
-	// 	return "/hacker-news-search?input="+input;
-	// }
-
 	@PostMapping("/hacker-news-search")
-	public String api(@RequestParam("input") String input, Model model) {
+	public String api(@RequestParam("input") String input) {
 
+		return "redirect:/hacker-news-search?input="+input;	
+	}
+	
+	@GetMapping("/hacker-news-search")
+	public String api(@RequestParam("input") String input, Model model) {
 
 		HackerNewsAPI api = new HackerNewsAPI();
 
-		System.out.println("lalalalalala");
+		System.out.println(input);
 
 		List<String> urls = api.printTopStoryUrls(input, 500);
 		for (String string : urls) {
 			client.addURL(string);
 			System.out.println(string);
 		}
+		model.addAttribute("input", input);
 		model.addAttribute("urls", urls);
 		
 		return "hacker_news_results";
 	}
+
 	
 	@MessageMapping("/closed")
 	public void onClose(String message) {
