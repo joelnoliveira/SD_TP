@@ -2,9 +2,13 @@ package com.ds.googol.controller;
 
 import jakarta.annotation.Resource;
 
+import java.io.FileInputStream;
+import java.io.InputStream;
 import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -37,13 +41,25 @@ public class PageController{
 	@Value("${characterLimit}")// get the value from the application.properties file
 	private int characterLimit;
 
+	@Value("${numStories}")// get the value from the application.properties file
+	private int numStories;
+
 	@Autowired
 	public PageController(SimpMessagingTemplate template) {
 
 		activeAdminPages = 0;
 
 		try {
-			server = new Server(-1, template);
+			// get the registry name from the application.properties file, it had to be done this way because the value was not being injected before the constructor was called, only after, so it was not possible to use the @Value annotation and the value would be null
+			Properties prop = new Properties();
+            InputStream input = new FileInputStream("src/main/resources/application.properties");
+            prop.load(input);
+            registryName = prop.getProperty("registryName");
+			input.close();
+			prop = null;
+
+
+			server = new Server(-1, registryName ,template);
 			pokemonsAPI = new PokemonAPI();
 			System.out.println("Updating pokemons map");
 			pokemonsAPI.updatePokemonsMap();
@@ -270,7 +286,7 @@ public class PageController{
 
 		System.out.println("User Input: "+input);
 
-		List<String> urls = api.printTopStoryUrls(input, 500);
+		List<String> urls = api.printTopStoryUrls(input, numStories);
 		for (String string : urls) {
 			client.addURL(string);
 			System.out.println(string);

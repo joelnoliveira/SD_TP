@@ -2,10 +2,12 @@
 ## Dependências
 - É necessário um terminal Linux para correr os bash scripts.
 - Pode ser que seja necessário fazer chmod dos scripts para que sejam possíveis de executar.
+- As dependências do Maven estão contidas no [pom.xml](./web_server/pom.xml).
+- Fora as dependências do Maven, o projeto precisa também de um jar do JSOUP ([jsoup-1.17.2.jar](./not_web_server/lib/jars/jsoup-1.17.2.jar)).
 
 ## Compilar
 
-- Para compilar todos os ficheiros basta correr o script [compile_all.sh](./scripts/compile_all.sh), exemplo a partir da raíz do projeto "./scripts/compile_all.sh". 
+- Para compilar todos os ficheiros basta correr o script [compile_all.sh](./scripts/compile_all.sh), exemplo a partir da raíz do projeto "./scripts/compile_all.sh". Este script irá gerar também um jar que será necessário para o Maven correr.
 - Este pode ser executado juntamente com um dos seguintes argumentos:
     - "-delete_bin_before_compile", apaga todo o conteúdo da pasta [bin](./bin), que contém todos os ficheiros binários, e depois compila.
     - "-delete_logs", apaga todos os ficheiros output de texto situados na pasta [logs](./logs) e depois compila.
@@ -24,4 +26,39 @@
 ### Ficheiro [client_runner.sh](./scripts/client_runner.sh)
 - A execução é idêntica à dos ficheiros [downloader_runner.sh](./scripts/downloader_runner.sh) e [index_storage_barrel_runner.sh](./scripts/index_storage_barrel_runner.sh), à exceção que este não necessita de um ficheiro para o output.
 
+## Estrutura do projeto
+```
+├── bin
+│   └── meta1
+├── config
+├── docs
+├── logs
+├── not_web_server
+│   ├── lib
+│   │   └── jars
+│   └── src
+│       └── meta1
+├── scripts
+│   └── windows
+└── web_server
+    ├── lib
+    │   └── jars
+    ├── src
+    │   ├── main
+    │   │   ├── java
+    │   │   │   └── com
+    │   │   │       └── ds
+    │   │   │           └── googol
+    │   │   │               ├── controller
+    │   │   │               └── model
+    │   │   └── resources
+    │   │       ├── static
+    │   │       └── templates
+    │   └── test
+    │       └── java
+    │           └── com
+    │               └── ds
+    │                   └── googol
+    └── target
 
+```

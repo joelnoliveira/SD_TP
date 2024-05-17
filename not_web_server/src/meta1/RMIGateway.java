@@ -517,7 +517,7 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayDownloa
                 System.out.println(LocalDateTime.now() + " : RMIGateway failed: " + e);
             }
         } catch (Exception e) {
-            e.printStackTrace(); // TODO Consider printing in output stream like sout so it can be seen in the logfile
+            e.printStackTrace();
             return;
         }
         

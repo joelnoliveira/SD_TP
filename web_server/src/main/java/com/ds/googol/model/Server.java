@@ -20,11 +20,10 @@ public class Server extends UnicastRemoteObject implements RMIClientsInterface{
     private SimpMessagingTemplate template;
     private String message;
 
-    public Server(int id, SimpMessagingTemplate template)throws RemoteException, MalformedURLException, NotBoundException{
+    public Server(int id, String registryName, SimpMessagingTemplate template)throws RemoteException, MalformedURLException, NotBoundException{
 
         this.id = id;
         this.template = template;
-        String registryName = "rmi://localhost:1092/ClientsOnGateway"; //TODO: make this right
         gateway = (RMIGatewayClientsInterface) Naming.lookup(registryName);
         System.out.println("Status Client Started, id=" + id);
     }
