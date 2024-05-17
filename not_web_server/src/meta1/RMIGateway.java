@@ -197,6 +197,7 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayDownloa
             e.printStackTrace();
         }
         urlQueue.put(url);
+        System.out.println(LocalDateTime.now() + " : URL " + url + " added to the queue.");
         linkSearchCount++;
     }
 

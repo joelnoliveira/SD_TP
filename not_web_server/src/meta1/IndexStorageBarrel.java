@@ -428,7 +428,9 @@ public class IndexStorageBarrel extends UnicastRemoteObject implements RMIBarrel
                     urlData.title = scanner.nextLine();
                     urlData.textCitation = scanner.nextLine();
                     urlData.tokens = scanner.nextLine();
-                    urlData.links = scanner.nextLine();
+                    if(scanner.hasNext())urlData.links = scanner.nextLine();
+                    else urlData.links = "";
+                    
                     // else {
                     //     urlData.links = urlData.tokens;
                     //     urlData.tokens = urlData.textCitation;

@@ -3,6 +3,7 @@ package com.ds.googol.controller;
 import jakarta.annotation.Resource;
 
 import java.rmi.RemoteException;
+import java.util.ArrayList;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -18,6 +19,7 @@ import org.springframework.ui.Model;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import com.ds.googol.model.WebClient;
+import com.ds.googol.model.HackerNewsAPI;
 import com.ds.googol.model.Server;
 
 @Controller
@@ -86,6 +88,8 @@ public class PageController{
 				return "redirect:/search-page?type=url";
 			case "3":
 				return "redirect:/admin";
+			case "4":
+				return "redirect:/hacker-news-page-search";
 			default:
 				break;
 		}
@@ -264,22 +268,41 @@ public class PageController{
 		return "admin";
 	}
 
-	// @GetMapping("/api")
-	// public String api(Model model) {
+	@GetMapping("/hacker-news-page-search")
+	public String api(Model model) {
 
-	// 	HackerNewsAPI api = new HackerNewsAPI();
+		model.addAttribute("title", "Hacker News URL Indexer");
+		model.addAttribute("actionDescription", "Type the terms you want to search for:");
+		model.addAttribute("actionUrl", "/hacker-news-search");
 
-	// 	ArrayList<String> terms = new ArrayList<String>();
-	// 	terms.add("nuclear");
-	// 	terms = api.printTopStoryUrls(terms);
-		
-	// 	// print terms
-	// 	for(String term : terms){
-	// 		System.out.println(term);
-	// 	}
+		return "search_or_add";
+	}
 
-	// 	return "index";
+	
+	// @GetMapping("/hacker-news-search")
+	// public String api(@RequestParam("input") String input) {
+
+	// 	return "/hacker-news-search?input="+input;
 	// }
+
+	@PostMapping("/hacker-news-search")
+	public String api(@RequestParam("input") String input, Model model) {
+
+
+		HackerNewsAPI api = new HackerNewsAPI();
+
+		System.out.println("lalalalalala");
+
+		List<String> urls = api.printTopStoryUrls(input, 500);
+		for (String string : urls) {
+			client.addURL(string);
+			System.out.println(string);
+		}
+		model.addAttribute("urls", urls);
+		
+		return "hacker_news_results";
+	}
+	
 	@MessageMapping("/closed")
 	public void onClose(String message) {
 		// receive a message from the browser when the admin page is closed

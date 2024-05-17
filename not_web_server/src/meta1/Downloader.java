@@ -283,6 +283,7 @@ public class Downloader {
                         downloader.messageProcessor(); // Process the received messages
                     }).start();
                      
+                    String url = "";
                     while (true) {
                         try {//Process the URL
         
@@ -290,6 +291,7 @@ public class Downloader {
         
                             URLData urlData = new URLData();
                             urlData.pageURL = gateway.getNextUrl();
+                            url = urlData.pageURL;
                             urlData.downloaderId = downloader.downloaderId;
                             
                             // System.out.println("Message number: " + urlData.messageId);
@@ -329,7 +331,12 @@ public class Downloader {
                             urlData.tokens = urlData.tokens.toLowerCase().replace("\n", " ");
                             // System.out.println("Tokens: " + urlData.tokens);
                             
-                            
+                            // if there was no tokens nor text citation, the page is not valid so we don't send it
+                            if(urlData.tokens.length() == 0 && urlData.textCitation.length() == 0){
+                                System.out.println("The page " + urlData.pageURL + " is not valid, it will not be sent to the barrels");
+                                continue;
+                            }
+                                
                             // ------------------------- Links -------------------------
                             
                             Elements links = doc.select("a[href]");
@@ -362,10 +369,12 @@ public class Downloader {
                             // ------------------------- Scanner -------------------------
                             
                         }   catch (ConnectException e) {
-                                System.err.println("Connection failed: " + e.getMessage());
-                        }
-                        catch (IOException e) {
+                                System.out.println(LocalDateTime.now() + " : Connection refused + " + e.getMessage());
+                                
+                            }
+                        catch (Exception e) {
                             e.printStackTrace();
+                            System.out.println(LocalDateTime.now() + " : Error processing URL: " + url + " " + e.getMessage());
                         } 
                     }
                     // ------------------------- CROWLER -------------------------

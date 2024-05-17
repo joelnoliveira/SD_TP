@@ -1,0 +1,16 @@
+<!DOCTYPE HTML>
+<html>
+<head> 
+    <title>Hacker News URLs Indexation</title> 
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <link href="/main.css" rel="stylesheet">
+</head>
+<body>
+    <div id="main-content" class="container">
+        <h1>Hacker News URLs Indexation</h1>
+        <p>The follow URLs will be indexed (if none is listed, then none was found):</p>
+        <div th:each="url, iterStat : ${urls}">
+            <a th:href="@{${url}}" th:text="${url}"></a><br>
+    </div>
+    </div> 
+</body>
