@@ -1,0 +1,17 @@
+<!DOCTYPE HTML>
+<html>
+<head> 
+    <title>Pokemon Stats</title> 
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <link href="/main.css" rel="stylesheet">
+</head>
+<body>
+    <div id="main-content" class="container">
+        <a href="/" class="button">Home</a>
+        <h1>List of some characteristics of the Pokemon:</h1>
+        <div th:each="stat, iterStat : ${pokemonStats}">
+            <p th:text="${stat}">
+        </div>
+    </div> 
+    <img th:if="${pokemonImageURL}" th:src="${pokemonImageURL}" alt="Pokemon image" class="pokemon-image"/>
+</body>

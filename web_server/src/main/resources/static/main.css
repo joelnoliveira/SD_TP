@@ -26,3 +26,8 @@ ul {
 .option-list {
     text-align: left;
 }
+
+.pokemon-image {
+    width: 200px;
+    height: 200px;
+}

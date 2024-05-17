@@ -1,0 +1,40 @@
+<!DOCTYPE HTML>
+<html>
+<head> 
+    <title>Pokemon Search</title> 
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <link href="/main.css" rel="stylesheet">
+</head>
+<body>
+    <div id="main-content" class="container">
+        <h1>Pokemon Search</h1>
+        <p>Select an option you would like to perform:</p>
+        <form action="/pokemon-search-page" method="post">
+            <ul class="option-list">
+                <li><input type="radio" id="option0" name="option" value="0">
+                <label for="option0"> Type the name of a Pokemon</label></li>
+                <li><input type="radio" id="option1" name="option" value="1">
+                <label for="option1"> Random Pokemon</label></li>
+            </ul>
+            <input type="submit" value="Submit">
+            <div>
+                <a href="/" class="button">Home</a>
+            </div>
+        </form>
+
+        <script>
+        function checkInput() {
+
+            var input = document.getElementById('input').value.trim();
+            var submitButton = document.getElementById('submit');
+            
+            if(input) {
+                submitButton.disabled = false;
+            } else {
+                submitButton.disabled = true;
+            }
+        }
+        // Call checkInput on page load in case the input is pre-filled or to initialize the button state
+        window.onload = checkInput;
+        </script>
+    </div>

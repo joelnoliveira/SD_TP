@@ -3,6 +3,7 @@ package com.ds.googol.controller;
 import jakarta.annotation.Resource;
 
 import java.rmi.RemoteException;
+import java.util.ArrayList;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -17,9 +18,7 @@ import org.springframework.web.context.WebApplicationContext;
 import org.springframework.ui.Model;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
-import com.ds.googol.model.WebClient;
-import com.ds.googol.model.HackerNewsAPI;
-import com.ds.googol.model.Server;
+import com.ds.googol.model.*;
 
 @Controller
 public class PageController{
@@ -27,6 +26,7 @@ public class PageController{
 	private int idCounter = Integer.MAX_VALUE;
 	private int activeAdminPages;
 	private Server server;
+	private PokemonAPI pokemonsAPI;
 
 	@Resource(name = "sessionScopedNumberGenerator")
     private WebClient client;
@@ -44,9 +44,14 @@ public class PageController{
 
 		try {
 			server = new Server(-1, template);
+			pokemonsAPI = new PokemonAPI();
+			System.out.println("Updating pokemons map");
+			pokemonsAPI.updatePokemonsMap();
+			System.out.println("Pokemons map updated");
+			// get the name and urls of all the pokemons, so they can be used later on (The list is static and will not change during the execution of the program, for refreshes the server must be restarted)
 
 		} catch (Exception e) {
-			e.printStackTrace();
+			throw new RuntimeException("Error, could not create server. Please try again later"+e.getMessage());
 		}
 	}
 
@@ -89,6 +94,8 @@ public class PageController{
 				return "redirect:/admin";
 			case "4":
 				return "redirect:/hacker-news-page-search";
+			case "5":
+				return "redirect:/pokemon-search-page";
 			default:
 				break;
 		}
@@ -288,7 +295,7 @@ public class PageController{
 
 		HackerNewsAPI api = new HackerNewsAPI();
 
-		System.out.println(input);
+		System.out.println("User Input: "+input);
 
 		List<String> urls = api.printTopStoryUrls(input, 500);
 		for (String string : urls) {
@@ -301,6 +308,86 @@ public class PageController{
 		return "hacker_news_results";
 	}
 
+	@GetMapping("/pokemon-search-page")
+	public String pokemonSearch(Model model) {
+
+		return "pokemon_page";
+	}
+
+	@PostMapping("/pokemon-search-page")
+	public String pokemonSearch(@RequestParam("option") int option, Model model) {
+
+		System.out.println("User Input: "+option);
+
+		if(option==0){
+
+			model.addAttribute("title", "Pokemon Search");
+			model.addAttribute("actionDescription", "Type the name of the pokemon you want to search for:");
+			model.addAttribute("actionUrl", "/pokemon-search");
+			return "search_or_add";
+		}
+		else return "redirect:/pokemon-search?input=random";
+	}
+
+	@PostMapping("/pokemon-search")
+	public String pokemonSearch(@RequestParam("input") String input) {
+
+		return "redirect:/pokemon-search?input="+input;
+
+	}
+
+	@GetMapping("/pokemon-search")
+	public String pokemonSearch(@RequestParam("input") String input, Model model) {
+
+		String imageURL;
+		ArrayList<String> pokemonStats;
+		System.out.println("User Input: "+input);
+
+		try{
+			if(input.equals("random")){
+
+				pokemonStats = pokemonsAPI.getRandomPokemon();
+
+				imageURL = pokemonStats.get(pokemonStats.size()-1);// get the image URL placed at the end of the list
+				pokemonStats.remove(pokemonStats.size()-1);// remove the image URL from the list
+
+				System.out.println("Image URL: "+imageURL);
+				
+				// check if there is an image URL
+				if(!imageURL.equals(""))model.addAttribute("pokemonImageURL", imageURL);
+				
+				model.addAttribute("pokemonStats", pokemonStats);
+
+				System.out.println("Pokemon Stats: "+pokemonStats);
+				return "pokemon_results.html";
+
+			}else{
+	
+				pokemonStats = pokemonsAPI.getPokeInfo(input);
+				
+				if(pokemonStats.size()>1){// if there is more than one element in the list, it means that the pokemon was found
+
+					imageURL = pokemonStats.get(pokemonStats.size()-1);// get the image URL placed at the end of the list
+					pokemonStats.remove(pokemonStats.size()-1);// remove the image URL from the list
+					System.out.println("Image URL: "+imageURL);
+
+					// check if there is an image URL
+					if(!imageURL.equals(""))model.addAttribute("pokemonImageURL", imageURL);
+
+				}
+
+				model.addAttribute("pokemonStats", pokemonStats);
+				System.out.println("Pokemon Stats: "+pokemonStats);
+
+				return "pokemon_results.html";
+			}
+		}catch(Exception e){
+			model.addAttribute("error", "Internal Server Error");
+			model.addAttribute("status", "500");
+			model.addAttribute("message", "The server encountered an unexpected condition which prevented it from fulfilling the request: Error getting pokemon");
+			return "error";
+		}
+	}
 	
 	@MessageMapping("/closed")
 	public void onClose(String message) {

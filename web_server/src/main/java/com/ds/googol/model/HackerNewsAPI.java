@@ -16,47 +16,55 @@ import com.google.gson.JsonObject;
 public class HackerNewsAPI {
  
     public ArrayList<String> printTopStoryUrls(String input, int numStories) {
+        // API URL to get the top stories
         String apiUrl = "https://hacker-news.firebaseio.com/v0/topstories.json";
+        // Splitting the input into terms
         String[] terms = input.toLowerCase().split(" ");
+        // List to store all the story URLs
         ArrayList<String> allStoryURLs = new ArrayList<>(numStories);
         try {
+            // Opening a connection to the API URL
             URL url = new URL(apiUrl);
             HttpURLConnection connection = (HttpURLConnection) url.openConnection();
             connection.setRequestMethod("GET");
 
+            // Verifying the response code
             int responseCode = connection.getResponseCode();
             if (responseCode == HttpURLConnection.HTTP_OK) {
+                // Reading the response line by line and storing in a StringBuilder
                 BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
                 StringBuilder response = new StringBuilder();
                 String inputLine;
                 while ((inputLine = in.readLine()) != null) {
                     response.append(inputLine);
                 }
+                // Closing the BufferedReader and disconnecting the connection
                 in.close();
                 connection.disconnect();
 
-                // Convertendo a resposta JSON em uma matriz de IDs
+                // Converting the JSON response to get the top story IDs
                 Gson gson = new Gson();
                 int[] topStoryIds = gson.fromJson(response.toString(), int[].class);
 
-                // ExecutorService para realizar buscas paralelas
+                // Creating a fixed thread pool with 10 threads
                 ExecutorService executor = Executors.newFixedThreadPool(10);
                 List<Future<String>> futures = new ArrayList<>(Math.min(numStories, topStoryIds.length));
 
-                // Obtendo os URLs das top stories em paralelo
+                // Getting the URL of the top stories
                 for (int i = 0; i < Math.min(numStories, topStoryIds.length); i++) {
                     final int storyId = topStoryIds[i];
                     futures.add(executor.submit(() -> getStoryUrl(storyId, terms)));
                 }
 
-                // Aguardando todos os resultados
+                // Adding the URLs to the list
                 for (Future<String> future : futures) {
                     String storyUrl = future.get();
-                    if (storyUrl != null && !storyUrl.isEmpty()) { // Verifica se o URL não é nulo nem vazio
+                    if (storyUrl != null && !storyUrl.isEmpty()) { // Verifying if the URL is not empty
                         allStoryURLs.add(storyUrl);
                     }
                 }
-
+                
+                // Shutting down the executor
                 executor.shutdown();
                 return allStoryURLs;
             } else {
@@ -70,52 +78,70 @@ public class HackerNewsAPI {
         }
     }
 
-    private String getStoryUrl(int id, String[] terms) throws Exception {
+    private String getStoryUrl(int id, String[] terms) {
+        // API URL to get the story details
         String apiUrl = "https://hacker-news.firebaseio.com/v0/item/" + id + ".json";
-        URL url = new URL(apiUrl);
-        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-        connection.setRequestMethod("GET");
 
-        int responseCode = connection.getResponseCode();
-        if (responseCode == HttpURLConnection.HTTP_OK) {
-            BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-            StringBuilder response = new StringBuilder();
-            String inputLine;
-            while ((inputLine = in.readLine()) != null) {
-                response.append(inputLine);
-            }
-            in.close();
-            connection.disconnect();
+        try{
+            // Opening a connection to the API URL
+            URL url = new URL(apiUrl);
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            connection.setRequestMethod("GET");
 
-            // Convertendo a resposta JSON para obter o URL da história
-            Gson gson = new Gson();
-            JsonObject storyObject = gson.fromJson(response.toString(), JsonObject.class);
-            boolean containsAllTerms = true;
-            for(String term : terms){
-                if(storyObject.get("type").getAsString().equals("story")) {
-                    String title = storyObject.has("title") ? storyObject.get("title").getAsString().toLowerCase(): "";
-                    String text = storyObject.has("text") ? storyObject.get("text").getAsString().toLowerCase() : "";
-                    if (!title.contains(term) && !text.contains(term)) {
+            // Verifying the response code
+            int responseCode = connection.getResponseCode();
+            if (responseCode == HttpURLConnection.HTTP_OK) {
+                // Reading the response line by line and storing in a StringBuilder
+                BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+                StringBuilder response = new StringBuilder();
+                String inputLine;
+                while ((inputLine = in.readLine()) != null) {
+                    response.append(inputLine);
+                }
+                // Closing the BufferedReader and disconnecting the connection
+                in.close();
+                connection.disconnect();
+
+                // Converting the JSON response to get the story details
+                Gson gson = new Gson();
+                JsonObject storyObject = gson.fromJson(response.toString(), JsonObject.class);
+                boolean containsAllTerms = true;
+                // Verifying if the story contains all the terms
+                for(String term : terms){
+                    // Verifying if the story is a story and contains the term in the title or text
+                    if(storyObject.get("type").getAsString().equals("story")) {
+                        String title = storyObject.has("title") ? storyObject.get("title").getAsString().toLowerCase(): "";
+                        String text = storyObject.has("text") ? storyObject.get("text").getAsString().toLowerCase() : "";
+                        // If the story does not contain the term in the title or text, it does not contain all the terms
+                        if (!title.contains(term) && !text.contains(term)) {
+                            containsAllTerms = false;
+                            break;
+                        }
+                    // If the story is not a story, it does not contain all the terms
+                    } else {
                         containsAllTerms = false;
                         break;
                     }
-                } else {
-                    containsAllTerms = false;
-                    break;
                 }
-            }
-            if (containsAllTerms && storyObject.get("type").getAsString().equals("story") && storyObject.has("url") && storyObject.has("title")) {
-                String storyUrl = storyObject.get("url").getAsString();
-                System.out.println("Story URL: " + storyUrl);
-                System.out.println("Story Title: " + storyObject.get("title").getAsString());
-                if (storyObject.has("text")) {
-                    System.out.println("Story Text: " + storyObject.get("text").getAsString());
+                // If the story contains all the terms, it prints the URL, title and text of the story
+                if (containsAllTerms && storyObject.get("type").getAsString().equals("story") && storyObject.has("url") && storyObject.has("title")) {
+                    String storyUrl = storyObject.get("url").getAsString();
+                    System.out.println("Story URL: " + storyUrl);
+                    System.out.println("Story Title: " + storyObject.get("title").getAsString());
+                    // If the story has text, it prints the text of the story
+                    if (storyObject.has("text")) {
+                        System.out.println("Story Text: " + storyObject.get("text").getAsString());
+                    }
+                    return storyUrl;
                 }
-                return storyUrl;
+                return "";
+            } else {
+                System.out.println("Erro ao fazer a requisição. Código de resposta: " + responseCode);
             }
-            return "";
-        } else {
-            throw new Exception("Erro ao obter a URL da história. Código de resposta: " + responseCode);
+        } catch (Exception e) {
+            System.out.println("Erro ao obter a história: " + e.getMessage());
+            e.printStackTrace();
         }
+        return "";
     }
 }
