@@ -42,7 +42,29 @@ public class WebClient extends UnicastRemoteObject implements RMIClientsInterfac
     public List<String> searchByTerms(String terms, int batchCount) {
         
         try{
-            return gateway.searchByTerms(terms, batchCount, characterLimit);
+            List<String> result = gateway.searchByTerms(terms, batchCount, characterLimit);
+
+            // adapt the result to be displayed in the web page
+            for(int i = 0; i < result.size(); i++){
+			
+                String string = result.get(i);
+                // tokenize the string
+    
+                String[] tokens = string.split("\n");
+                StringBuilder sb = new StringBuilder();
+                
+                sb.append(tokens[0]+"<br>");// add a line break after the term
+                // add a clickable link to the URL if it exists
+                if(tokens.length > 1)sb.append("<a href=\""+tokens[1]+"\">"+ tokens[1] +"</a><br>");
+    
+                for(int j = 2; j < tokens.length; j++){
+                    sb.append(tokens[j]+"<br>");
+                }
+    
+                result.set(i, sb.toString());
+            }
+
+            return result;
 
         }catch (Exception e){// if there is an error null is returned
             e.printStackTrace();
@@ -53,7 +75,18 @@ public class WebClient extends UnicastRemoteObject implements RMIClientsInterfac
     public List<String> consultURL(String urlConsult, int batchCount) {
         
         try{
-            return gateway.consultURL(urlConsult, batchCount);
+
+            List<String> result = gateway.consultURL(urlConsult, batchCount);
+
+            for(int i = 0; i < result.size(); i++){
+
+                String string = result.get(i);
+                // add a clickable link to the URL if it exists
+                result.set(i, "<a href=\""+ string.replace("\n", "") +"\">"+ string +"</a><br>");
+
+            }
+            
+            return result;
 
         }catch (Exception e){// if there is an error null is returned
             e.printStackTrace();

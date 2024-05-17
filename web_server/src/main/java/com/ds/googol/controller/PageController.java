@@ -179,33 +179,6 @@ public class PageController{
 			model.addAttribute("message", "The server encountered an unexpected condition which prevented it from fulfilling the request");
 			return "error";
 		}
-
-		for(int i = 0; i < result.size(); i++){
-			
-			String string = result.get(i);
-			// tokenize the string
-			
-			if(type.equals("term")){
-
-				String[] tokens = string.split("\n");
-				StringBuilder sb = new StringBuilder();
-				
-				// TODO: change the replaces and the <br> tags to be done in the meta1 stuff
-				sb.append(tokens[0]+"<br>");// add a line break after the term
-				// add a clickable link to the URL if it exists
-				if(tokens.length > 1)sb.append("<a href=\""+tokens[1]+"\">"+ tokens[1] +"</a><br>");
-	
-				for(int j = 2; j < tokens.length; j++){
-					sb.append(tokens[j]+"<br>");
-				}
-	
-				result.set(i, sb.toString());
-
-			}else{
-				// add a clickable link to the URL if it exists
-				result.set(i, "<a href=\""+ string.replace("\n", "") +"\">"+ string +"</a><br>");
-			}
-		}
 		
 		if(result.size() < 10){
 
