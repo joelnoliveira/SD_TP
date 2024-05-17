@@ -240,7 +240,6 @@ public class PokemonAPI {
                         noDamageFrom.add(damageRelations.getAsJsonObject().get("name").getAsString());
                     }
                     damageRelationsMap.put("doubleDamageFrom",doubleDamageFrom);
-                    damageRelationsMap.put("doubleDamageFrom",doubleDamageFrom);
                     damageRelationsMap.put("noDamageTo",noDamageTo);
                     damageRelationsMap.put("halfDamageTo",halfDamageTo);
                     damageRelationsMap.put("doubleDamageTo",doubleDamageTo);
@@ -268,7 +267,6 @@ public class PokemonAPI {
             }else{
                 pokeInfoArrayList.add("Half damage to: " + String.join(", ", damageRelationsMap.get("halfDamageTo")) + ".");
             }
-            pokeInfoArrayList.add("Half damage to: " + String.join(", ", damageRelationsMap.get("halfDamageTo")) + ".");
         }
         if(damageRelationsMap.containsKey("noDamageTo")){
             if (damageRelationsMap.get("noDamageTo").isEmpty()){
@@ -283,7 +281,6 @@ public class PokemonAPI {
             }else{
                 pokeInfoArrayList.add("Double damage from: " + String.join(", ", damageRelationsMap.get("doubleDamageFrom")) + ".");
             }
-            pokeInfoArrayList.add("Double damage from: " + String.join(", ", damageRelationsMap.get("doubleDamageFrom")) + ".");
         }
         if(damageRelationsMap.containsKey("halfDamageFrom")){
             if (damageRelationsMap.get("halfDamageFrom").isEmpty()){

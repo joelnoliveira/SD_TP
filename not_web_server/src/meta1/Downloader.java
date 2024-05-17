@@ -292,6 +292,9 @@ public class Downloader {
                             URLData urlData = new URLData();
                             urlData.pageURL = gateway.getNextUrl();
                             url = urlData.pageURL;
+
+                            System.out.println(LocalDateTime.now() + " : Processing URL: " + url);
+
                             urlData.downloaderId = downloader.downloaderId;
                             
                             // System.out.println("Message number: " + urlData.messageId);
@@ -369,7 +372,7 @@ public class Downloader {
                             // ------------------------- Scanner -------------------------
                             
                         }   catch (ConnectException e) {
-                                System.out.println(LocalDateTime.now() + " : Eror Connection refused + " + e.getMessage());
+                                System.out.println(LocalDateTime.now() + " : Error Connection refused + " + e.getMessage());
                                 
                             }
                         catch (Exception e) {
