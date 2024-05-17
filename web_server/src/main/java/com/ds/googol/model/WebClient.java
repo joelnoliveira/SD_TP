@@ -9,11 +9,25 @@ import java.util.List;
 import meta1.RMIClientsInterface;
 import meta1.RMIGatewayClientsInterface;
 
+/**
+ * The WebClient class represents a client in the distributed system.
+ * It implements the RMIClientsInterface to support RMI communication.
+ */
 public class WebClient extends UnicastRemoteObject implements RMIClientsInterface{
 
     private int id, characterLimit;
     private RMIGatewayClientsInterface gateway;
 
+    /**
+     * Constructor for the WebClient class.
+     * 
+     * @param id the ID of the client
+     * @param registryName the name of the RMI registry
+     * @param characterLimit the character limit for the search results
+     * @throws RemoteException if an RMI error occurs
+     * @throws MalformedURLException if the URL is invalid
+     * @throws NotBoundException if the RMI registry is not bound
+     */
     public WebClient(int id, String registryName, int characterLimit)throws RemoteException, MalformedURLException, NotBoundException{
         this.id = id;
         this.characterLimit = characterLimit;
@@ -23,10 +37,21 @@ public class WebClient extends UnicastRemoteObject implements RMIClientsInterfac
         System.out.println("WebClient started: " + id);
     }
 
+    /**
+     * Returns the ID of the client.
+     * 
+     * @return the ID of the client
+     */
     public int getId() {
         return id;
     }
 
+    /**
+     * Adds a URL to the Queue in the gateway.
+     * 
+     * @param url the URL to add
+     * @return true if the URL was added successfully, false otherwise
+     */
     public boolean addURL(String url) {
 
         try{
@@ -39,6 +64,13 @@ public class WebClient extends UnicastRemoteObject implements RMIClientsInterfac
         return false;
     }
 
+    /**
+     * Asks the gateway to search for the terms.
+     * 
+     * @param terms the terms to search for
+     * @param batchCount the batch count
+     * @return the search results
+     */
     public List<String> searchByTerms(String terms, int batchCount) {
         
         try{
@@ -72,6 +104,13 @@ public class WebClient extends UnicastRemoteObject implements RMIClientsInterfac
         }
     }
     
+    /**
+     * Asks the gateway to consult the URL.
+     * 
+     * @param urlConsult the URL to consult
+     * @param batchCount the batch count
+     * @return the URL data
+     */
     public List<String> consultURL(String urlConsult, int batchCount) {
         
         try{
@@ -94,6 +133,9 @@ public class WebClient extends UnicastRemoteObject implements RMIClientsInterfac
         }
     }
 
+    /**
+     * Unused in the WebClient class.
+     */
     @Override
     public void updateAdminConsole(String arg0) throws RemoteException {
     }

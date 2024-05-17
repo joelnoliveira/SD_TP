@@ -13,8 +13,18 @@ import java.util.concurrent.Future;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 
+/**
+ * The HackerNewsAPI class provides methods to get the top stories from the Hacker News API.
+ */
 public class HackerNewsAPI {
- 
+    
+    /**
+     * Prints the URLs of the top stories that contain all the terms in the input.
+     * 
+     * @param input the input string containing the terms to search for
+     * @param numStories the number of top stories to print
+     * @return the list of URLs of the top stories
+     */
     public ArrayList<String> printTopStoryUrls(String input, int numStories) {
         // API URL to get the top stories
         String apiUrl = "https://hacker-news.firebaseio.com/v0/topstories.json";
@@ -78,6 +88,13 @@ public class HackerNewsAPI {
         }
     }
 
+    /**
+     * Gets the URL of the story with the given ID and containing all the terms.
+     * 
+     * @param id the ID of the story
+     * @param terms the terms to search for
+     * @return the URL of the story
+     */
     private String getStoryUrl(int id, String[] terms) {
         // API URL to get the story details
         String apiUrl = "https://hacker-news.firebaseio.com/v0/item/" + id + ".json";

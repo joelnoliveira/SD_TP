@@ -11,11 +11,17 @@ import java.util.Random;
 
 import com.google.gson.*;
 
+/**
+ * The PokemonAPI class provides methods to get information about Pokémon from the PokéAPI.
+ */
 public class PokemonAPI {
-
+    
     private HashMap<String, String> pokemonNamesAndURLs = new HashMap<>();
     // Will hold the name and urls of all the pokemons existing at the time
     
+    /**
+     * Default constructor for the PokemonAPI class.
+     */
     public int getPokemonCount() throws Exception {
         // API URL to get the total number of Pokémon
         String apiUrl = "https://pokeapi.co/api/v2/pokemon?limit=1";
@@ -55,6 +61,9 @@ public class PokemonAPI {
         return 0;
     }
 
+    /**
+     * Updates the Pokémon map with the names and URLs of the Pokémon.
+     */
     public void updatePokemonsMap() throws Exception {
         // Getting the total number of Pokémon
         int count = getPokemonCount();
@@ -105,6 +114,13 @@ public class PokemonAPI {
             //return null;
         }
     }
+
+    /**
+     * Returns the information of a Pokémon given its name.
+     * 
+     * @param pokeName the name of the Pokémon
+     * @return the information of the Pokémon
+     */
     public ArrayList<String> getPokeInfo(String pokeName) throws Exception{
         // Obtain the URL of the Pokémon
         String apiUrl = pokemonNamesAndURLs.get(pokeName);
@@ -174,6 +190,12 @@ public class PokemonAPI {
             return pokeInfoArrayList;
         }
     }
+
+    /**
+     * Returns a random Pokémon information.
+     * 
+     * @return the information of a random Pokémon
+     */
     public ArrayList<String> getRandomPokemon() throws Exception{
         try {
         // Random object to get a random Pokémon
@@ -193,6 +215,12 @@ public class PokemonAPI {
         error.add("Erro ao obter o Pokémon");
         return error;
     }
+
+    /**
+     * Returns special information
+     * 
+     * @return the special information about Pokemons
+     */
     private static ArrayList<String> getTypesInfo(ArrayList<String> typesURL, ArrayList<String> pokeInfoArrayList) {
         HashMap<String, List<String>> damageRelationsMap = new HashMap<>();
         for (int i = 0; i < typesURL.size(); i++){
@@ -253,6 +281,13 @@ public class PokemonAPI {
         }
         return null;
     }
+
+    /**
+     * Returns the damage relations of a Pokémon type.
+     * 
+     * @param damageRelationsMap the damage relations of a Pokémon type
+     * @return the damage relations of a Pokémon type
+     */
     private static ArrayList<String> handleDamageRelations(HashMap<String,List<String>> damageRelationsMap, ArrayList<String> pokeInfoArrayList){
         if(damageRelationsMap.containsKey("doubleDamageTo")){
             if (damageRelationsMap.get("doubleDamageTo").isEmpty()){

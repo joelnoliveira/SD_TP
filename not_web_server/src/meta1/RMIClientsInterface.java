@@ -10,7 +10,7 @@ import java.rmi.RemoteException;
 public interface RMIClientsInterface extends Remote {
     
     /**
-     * Updates the client's administration console with a message.
+     * Updates the client's administration console with a message. This method is called by the Gateway.
      * 
      * @param message the message to display
      * @throws RemoteException if a remote communication error occurs

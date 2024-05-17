@@ -20,12 +20,22 @@ public interface RMIBarrelsInterface extends Remote {
      */
     public boolean hasURL(String url) throws RemoteException;
     
+    /**
+     * Retrieves the data of the pages that contain a given term.
+     * 
+     * @param term the term to search
+     * @param batchNumber the batch number to retrieve
+     * @param citationLen the length of the citation to retrieve
+     * @return the data of the pages that contain the term
+     * @throws RemoteException if a remote communication error occurs
+     */
     public List<String> searchByTerms(String terms, int batchNumber, int citationLen) throws RemoteException;
     
     /**
      * Retrieves the pages that link to a given URL.
      *
      * @param url the URL to check
+     * @param batchNumber the batch number to retrieve
      * @return the pages that link to the URL
      * @throws RemoteException if a remote communication error occurs
      */

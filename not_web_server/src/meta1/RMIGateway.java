@@ -91,7 +91,12 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayDownloa
         }
         return sb.toString();
     }
-    
+
+    /**
+     * Updates the admin console for a specific client.
+     * 
+     * @param clientId the ID of the client
+     */
     private void adminConsoleUpdater(int clientId) {
         
         int count = 0;
@@ -317,7 +322,15 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayDownloa
         return list;
     }
 
-    
+    /**
+     * Searches for pages that contain the specified keywords.
+     * 
+     * @param keywords the keywords to search for
+     * @param batchNumber the batch number to retrieve
+     * @param shortQuoteCharLimit the character limit for short quotes
+     * @return a list of data from pages that contain the keywords
+     * @throws RemoteException if a remote communication error occurs
+     */
     public List<String> searchByTerms(String keywords, int batchNumber, int shortQuoteCharLimit) throws RemoteException {
 
         int barrelId;
@@ -363,6 +376,14 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayDownloa
         return results;
     }
     
+    /**
+     * Consults the RMIBarrels for pages that link to the specified URL.
+     * 
+     * @param urlConsult the URL to consult
+     * @param batchNumber the batch number to retrieve
+     * @return a list of pages that link to the specified URL
+     * @throws RemoteException if a remote communication error occurs
+     */
     public List<String> consultURL(String urlConsult, int batchNumber) throws RemoteException {
         
         int barrelId;
@@ -401,8 +422,12 @@ public class RMIGateway extends UnicastRemoteObject implements RMIGatewayDownloa
         // Return the query results
         return results;
     }
-
     
+    /**
+     * Retrieves the top searched terms.
+     * 
+     * @return a list of the top searched terms
+     */
     private List<String> topSearches(){
         
         // Convert the map values to a list

@@ -44,6 +44,10 @@ public class PageController{
 	@Value("${numStories}")// get the value from the application.properties file
 	private int numStories;
 
+	/**
+	 * Constructs a new PageController object.
+	 * @param template the SimpMessagingTemplate to send messages to the WebSocket
+	 */
 	@Autowired
 	public PageController(SimpMessagingTemplate template) {
 
@@ -71,6 +75,10 @@ public class PageController{
 		}
 	}
 
+	/**
+	 * Creates a new Server object.
+	 * @return a new Server object
+	 */
 	@Bean
 	@Scope(value = WebApplicationContext.SCOPE_APPLICATION, proxyMode = ScopedProxyMode.TARGET_CLASS)
 	public Server serverGenerator(){
@@ -78,6 +86,10 @@ public class PageController{
 		return null;
 	}
 	
+	/**
+	 * Creates a new WebClient object per session.
+	 * @return a new WebClient object
+	 */
 	@Bean
 	@Scope(value = WebApplicationContext.SCOPE_SESSION, proxyMode = ScopedProxyMode.TARGET_CLASS)
 	public WebClient sessionScopedNumberGenerator() {
@@ -89,12 +101,22 @@ public class PageController{
 		}
 	}
 
+	/**
+	 * Returns the index page.
+	 * @return the index page
+	 */
 	@GetMapping("/index")
 	public String index() {
 		
 		return "index";
 	}
 
+	/**
+	 * Processes the index page form.
+	 * @param option the option selected by the user
+	 * @param model the model to add attributes to
+	 * @return the page to redirect to
+	 */
 	@PostMapping("/index")
 	public String index(@RequestParam("option") String option, Model model) {
 		
@@ -118,6 +140,11 @@ public class PageController{
 		return "redirect:/index";
 	}
 
+	/**
+	 * Returns the add URL page.
+	 * @param model the model to add attributes to
+	 * @return the add URL page
+	 */
 	@GetMapping("/add-url")
 	public String addURL(Model model) {
 
@@ -127,6 +154,12 @@ public class PageController{
 		return "search_or_add";
 	}
 
+	/**
+	 * Processes the add URL page form.
+	 * @param url the URL to add
+	 * @param model the model to add attributes to
+	 * @return the message page
+	 */
 	@PostMapping("/add-url")
 	public String addURL(@RequestParam("input") String url, Model model) {
 		
@@ -137,6 +170,12 @@ public class PageController{
 		return "message";
 	}
 
+	/**
+	 * Returns the search page.
+	 * @param model the model to add attributes to
+	 * @param type the type of search to perform
+	 * @return the search page
+	 */
 	@GetMapping("/search-page")
 	public String searchTerms(Model model, @RequestParam(name = "type", required=false, defaultValue = "term") String type){
 
@@ -162,6 +201,14 @@ public class PageController{
 		return "search_or_add";
 	}
 
+	/**
+	 * Processes the search page form.
+	 * @param input the input to search for
+	 * @param batchCount the batch count to retrieve
+	 * @param type the type of search to perform
+	 * @param model the model to add attributes to
+	 * @return the results page
+	 */
 	@GetMapping("/search")
 	public String termsResult(@RequestParam("input") String input,
 	@RequestParam("batchCount") int batchCount, @RequestParam(name = "type", required=false, defaultValue = "term") String type, Model model) {
@@ -213,6 +260,15 @@ public class PageController{
 		return "results";
 	}
 
+	/**
+	 * Processes the search page form.
+	 * @param action the action to perform
+	 * @param terms the terms to search for
+	 * @param batchCount the batch count to retrieve
+	 * @param type the type of search to perform
+	 * @param model the model to add attributes to
+	 * @return the results page
+	 */
 	@PostMapping("/search")
 	public String termsResultPost(@RequestParam(name = "action",required=false, defaultValue = "Previous") String action,
 	@RequestParam("input") String terms,
@@ -230,6 +286,11 @@ public class PageController{
 		return "redirect:/search?input=" + terms + "&batchCount="+ batchCount + "&type=" + type;
 	}
 
+	/**
+	 * Returns the admin page.
+	 * @param model the model to add attributes to
+	 * @return the admin page
+	 */
 	@GetMapping("/admin")
 	public String admin(Model model) {
 
@@ -263,6 +324,11 @@ public class PageController{
 		return "admin";
 	}
 
+	/**
+	 * Returns the hacker news search page.
+	 * @param model the model to add attributes to
+	 * @return the hacker news search page
+	 */
 	@GetMapping("/hacker-news-page-search")
 	public String api(Model model) {
 
@@ -273,12 +339,23 @@ public class PageController{
 		return "search_or_add";
 	}
 	
+	/**
+	 * Processes the hacker news search page form.
+	 * @param input the input to search for
+	 * @return the hacker news search page
+	 */
 	@PostMapping("/hacker-news-search")
 	public String api(@RequestParam("input") String input) {
 
 		return "redirect:/hacker-news-search?input="+input;	
 	}
 	
+	/**
+	 * Processes the hacker news search page form.
+	 * @param input the input to search for
+	 * @param model the model to add attributes to
+	 * @return the hacker news search page
+	 */
 	@GetMapping("/hacker-news-search")
 	public String api(@RequestParam("input") String input, Model model) {
 
@@ -297,12 +374,23 @@ public class PageController{
 		return "hacker_news_results";
 	}
 
+	/**
+	 * Returns the pokemon search page.
+	 * @param model the model to add attributes to
+	 * @return the pokemon search page
+	 */
 	@GetMapping("/pokemon-search-page")
 	public String pokemonSearch(Model model) {
 
 		return "pokemon_page";
 	}
 
+	/**
+	 * Processes the pokemon search page form.
+	 * @param option the option selected by the user
+	 * @param model the model to add attributes to
+	 * @return the pokemon search page
+	 */
 	@PostMapping("/pokemon-search-page")
 	public String pokemonSearch(@RequestParam("option") int option, Model model) {
 
@@ -318,6 +406,11 @@ public class PageController{
 		else return "redirect:/pokemon-search?input=random";
 	}
 
+	/**
+	 * Processes the pokemon search page form.
+	 * @param input the input to search for
+	 * @return the pokemon search page
+	 */
 	@PostMapping("/pokemon-search")
 	public String pokemonSearch(@RequestParam("input") String input) {
 
@@ -325,6 +418,12 @@ public class PageController{
 
 	}
 
+	/**
+	 * Processes the pokemon search page form.
+	 * @param input the input to search for
+	 * @param model the model to add attributes to
+	 * @return the pokemon search page
+	 */
 	@GetMapping("/pokemon-search")
 	public String pokemonSearch(@RequestParam("input") String input, Model model) {
 
@@ -378,6 +477,10 @@ public class PageController{
 		}
 	}
 	
+	/**
+	 * Processes the admin page form.
+	 * @param message the message to send
+	 */
 	@MessageMapping("/closed")
 	public void onClose(String message) {
 		// receive a message from the browser when the admin page is closed
@@ -397,11 +500,5 @@ public class PageController{
 				throw new RuntimeException("Error unsubscribing from admin console");
 			}
 		}
-	}
-
-	@GetMapping("/counter")
-	public String counter(Model model) {
-		System.out.println("User Id: " + client.getId());
-		return "index";
 	}
 }

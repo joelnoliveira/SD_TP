@@ -33,6 +33,12 @@ public class RMIClient extends UnicastRemoteObject implements RMIClientsInterfac
 
     // ----------------- Remote methods -----------------
 
+    /**
+     * Updates the admin console with a message. This method is called by the gateway.
+     *
+     * @param message the message to display in the admin console
+     * @throws RemoteException if a remote communication error occurs
+     */
     public void updateAdminConsole(String message) throws RemoteException {
 
         // check if the client still has the admin console open
@@ -95,6 +101,13 @@ public class RMIClient extends UnicastRemoteObject implements RMIClientsInterfac
         } while (option != 5);
     }
 
+    /**
+     * Asks the Gateway to searche for the terms and displays the results.
+     *
+     * @param gateway the RMIGatewayClientsInterface object used for communication with the server
+     * @throws RemoteException if a remote error occurs during communication with the server
+     * @throws InterruptedException if the current thread is interrupted while waiting
+     */
     private void searchByTerms(RMIGatewayClientsInterface gateway) throws RemoteException, InterruptedException{
 
         int batchNumber = 0;
@@ -123,6 +136,13 @@ public class RMIClient extends UnicastRemoteObject implements RMIClientsInterfac
         System.out.println("---End of results---");   
     }
 
+    /**
+     * Asks the Gateway to consult the URL and displays the results.
+     *
+     * @param gateway the RMIGatewayClientsInterface object used for communication with the server
+     * @throws RemoteException if a remote error occurs during communication with the server
+     * @throws InterruptedException if the current thread is interrupted while waiting
+     */
     private void consultURL(RMIGatewayClientsInterface gateway)throws RemoteException, InterruptedException{
 
         int batchNumber = 0;

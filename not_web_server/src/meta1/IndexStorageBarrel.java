@@ -240,7 +240,14 @@ public class IndexStorageBarrel extends UnicastRemoteObject implements RMIBarrel
         return sortedURLsSet;
     }
 
-    
+
+    /**
+     * Retrieves the urls that reference the given url.
+     * @param url the url to search for
+     * @param batchNumber the batch number to be retrieved
+     * @return a list of urls that reference the given url
+     * @throws RemoteException if a remote exception occurs
+     */
     public List<String> getPagesThatLinksTo(String url, int batchNumber) throws RemoteException{
         
         int start, end, count = 0;
