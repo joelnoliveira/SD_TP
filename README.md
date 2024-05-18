@@ -29,9 +29,18 @@
 ## Estrutura do projeto
 ```
 ├── bin
-│   └── meta1
 ├── config
 ├── docs
+│   └── javadoc
+│       ├── com
+│       │   └── ds
+│       │       └── googol
+│       │           ├── controller
+│       │           └── model
+│       ├── legal
+│       ├── meta1
+│       ├── resources
+│       └── script-dir
 ├── logs
 ├── not_web_server
 │   ├── lib
@@ -39,7 +48,6 @@
 │   └── src
 │       └── meta1
 ├── scripts
-│   └── windows
 └── web_server
     ├── lib
     │   └── jars
@@ -60,5 +68,6 @@
     │               └── ds
     │                   └── googol
     └── target
+
 
 ```
