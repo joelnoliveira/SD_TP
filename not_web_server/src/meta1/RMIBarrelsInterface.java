@@ -23,7 +23,7 @@ public interface RMIBarrelsInterface extends Remote {
     /**
      * Retrieves the data of the pages that contain a given term.
      * 
-     * @param term the term to search
+     * @param terms the terms to search
      * @param batchNumber the batch number to retrieve
      * @param citationLen the length of the citation to retrieve
      * @return the data of the pages that contain the term

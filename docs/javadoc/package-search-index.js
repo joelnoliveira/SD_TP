@@ -1,0 +1,1 @@
+packageSearchIndex = [{"l":"All Packages","u":"allpackages-index.html"},{"l":"com.ds.googol"},{"l":"com.ds.googol.controller"},{"l":"com.ds.googol.model"},{"l":"meta1"}];updateSearchResults();

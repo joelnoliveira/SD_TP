@@ -4,6 +4,11 @@ import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.util.List;
 
+/**
+ * The RMIGatewayClientsInterface interface defines the methods that can be invoked remotely
+ * on a RMIGatewayClients object. It extends the Remote interface to indicate that these methods
+ * can be invoked remotely. This interface is a way for the clients to communicate with the Gateway.
+ */
 public interface RMIGatewayClientsInterface extends Remote {
     
     /**
@@ -30,7 +35,7 @@ public interface RMIGatewayClientsInterface extends Remote {
     /**
      * Retrieves the pages that link to a given URL.
      * 
-     * @param url the URL to check
+     * @param urlConsult the URL to search for
      * @param batchNumber the number of the batch to retrieve
      * @return the pages that link to the URL
      * @throws RemoteException if a remote communication error occurs
