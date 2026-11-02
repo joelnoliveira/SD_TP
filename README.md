@@ -239,29 +239,27 @@ The conceptual architecture is presented and detailed below.
 ```
 
 ## Usage Instructions
-### Dependências
-- É necessário um terminal Linux para correr os bash scripts.
-- Pode ser que seja necessário fazer chmod dos scripts para que sejam possíveis de executar.
-- As dependências do Maven estão contidas no [pom.xml](./web_server/pom.xml).
-- Fora as dependências do Maven, o projeto precisa também de um jar do JSOUP ([jsoup-1.17.2.jar](./not_web_server/lib/jars/jsoup-1.17.2.jar)).
+### Dependencies
+- It may be necessary to add permissions to the scripts so they can be executed.
+- Project Maven dependencies are declared in [pom.xml](./web_server/pom.xml). Besides this, the project also needs a jar of JSOUP ([jsoup-1.17.2.jar](./not_web_server/lib/jars/jsoup-1.17.2.jar)).
 
-### Compilar
+### Compilation
 
-- Para compilar todos os ficheiros basta correr o script [compile_all.sh](./scripts/compile_all.sh), exemplo a partir da raíz do projeto "./scripts/compile_all.sh". Este script irá gerar também um jar que será necessário para o Maven correr.
-- Este pode ser executado juntamente com um dos seguintes argumentos:
-    - "-delete_bin_before_compile", apaga todo o conteúdo da pasta [bin](./bin), que contém todos os ficheiros binários, e depois compila.
-    - "-delete_logs", apaga todos os ficheiros output de texto situados na pasta [logs](./logs) e depois compila.
-    - "-clean_all", as duas opções anteriores combinadas.
+- To compile all files is only necessary to run the script [compile_all.sh](./scripts/compile_all.sh) from the root of the project. This script will also generate the necessary jar for Maven to execute.
+- The script can be run with the following args:
+    - `-delete_bin_before_compile`, deletes all content from the [bin](./bin) directory before compilation, which holds all binary data.
+    - `-delete_logs`, deletes all content from the [logs](./logs) directory before compilation.
+    - `-clean_all`, the two options above combined.
 
-### Execução
-#### Ficheiros [downloader_runner.sh](./scripts/downloader_runner.sh), [index_storage_barrel_runner.sh](./scripts/index_storage_barrel_runner.sh)
-- Ambos seguem a mesma base de execução.
-- Exemplo da execução a partir da raíz do projeto: "./scripts/index_storage_barrel_runner.sh", sendo que neste caso será escolhido automáticamente um ID que corresponde ao número de nanosegundos dos sistema (é difícil mas não impossível que haja dois IDs iguais) e ficheiros de input e output default definidos no script.
-- Caso se prenteda alterar o ID, poderá executar-se da seguinte forma: "./scripts/downloader_runner.sh 1" onde "1" é o ID.
-- Ou então caso se queira alterar o ficheiro input de configuração (.config) e o ficheiro de output, deverá executar-se o script da seguinte forma: "./scripts/downloader_runner.sh 1 path_ficheiro.config path_ficheiro_output", onde 1 é o ID.
+### Execution
+#### Files [downloader_runner.sh](./scripts/downloader_runner.sh), [index_storage_barrel_runner.sh](./scripts/index_storage_barrel_runner.sh)
+- Both follow the same execution pattern.
+- For example, to execute the script from the project's root directory, run `./scripts/index_storage_barrel_runner.sh`. In this case, an ID will be automatically generated based on the system's current nanosecond timestamp (although unlikely, duplicate IDs are possible). The default input and output files defined in the script will be used.
+- To specify a different ID, execute the script as follows: `./scripts/downloader_runner.sh 1`, where `1` is the ID.
+- Alternatively, to specify a different configuration input file (`.config`) and output file, execute the script as follows: `./scripts/downloader_runner.sh 1 path_to_config_file.config path_to_output_file`, where `1` is the ID.
 
-#### Ficheiro [rmi_gateway_runner.sh](./scripts/rmi_gateway_runner.sh)
-- A execução é idêntica à anteriormente referida sendo que a única coisa que difere é que a RMIGateway não tem ID.
+#### File [rmi_gateway_runner.sh](./scripts/rmi_gateway_runner.sh)
+- Execution follows the same pattern described above, with the only difference being that the RMIGateway does not require an ID.
 
-#### Ficheiro [client_runner.sh](./scripts/client_runner.sh)
-- A execução é idêntica à dos ficheiros [downloader_runner.sh](./scripts/downloader_runner.sh) e [index_storage_barrel_runner.sh](./scripts/index_storage_barrel_runner.sh), à exceção que este não necessita de um ficheiro para o output.
+#### File [client_runner.sh](./scripts/client_runner.sh)
+- Execution follows the same pattern as `downloader_runner.sh` and `index_storage_barrel_runner.sh`, except that it does not require an output file.
