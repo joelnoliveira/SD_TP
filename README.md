@@ -9,7 +9,7 @@
 
 ## Project Overview
 
-This project aims to develop a web search engine. It is intended to provide a subset of the features offered by services such as Google.com and Bing.com, including automatic indexing (web crawler) and searching (search engine). The system stores various relevant details about each web page, including its URL, title and text snippet. When a user performs a search, the system should return a list of web pages containing the searched keywords, ranked according to their relevance. Users are also be able to submit URLs for indexing. Starting from these submitted URLs, the system should recursively or iteratively crawl and index all the links discovered on each page.
+This project consists on a distributed web search engine. Its academic purpose was to provide a subset of the features offered by services such as Google.com and Bing.com, including automatic indexing (web crawler) and searching (search engine). The system stores various relevant details about each web page, including its URL, title and text snippet. When a user performs a search, the system should return a list of web pages containing the searched keywords, ranked according to their relevance. Users are also be able to submit URLs for indexing. Starting from these submitted URLs, the system should recursively or iteratively crawl and index all the links discovered on each page.
 
 Googol is a distributed web search engine built using a client-server architecture. It features inter-server communication through Multicast sockets, remote data access using Java Remote Method Invocation (RMI), parallel data processing for improved performance, and redundancy to ensure application availability. The project also includes a web interface developed with Spring Boot, following the Model-View-Controller (MVC) architecture, with WebSockets for asynchronous client communication and integration with the Hacker News API through REST services.
 
@@ -24,15 +24,15 @@ The conceptual architecture is presented and detailed below.
 
 - **URL Queue** – Component that holds the URLs found by the Downloaders.
 
-- **Downloaders** – Crawl the web pages from the **URL Queue**, send the data to **Index Storage Barrels** via multicast and push new urls into the **URL Queue**.
+- **Downloaders** – Crawl links from the **URL Queue**, send the data to **Index Storage Barrels** via multicast and push new urls into the **URL Queue**.
 
 - **Index Storage Barrels** – Replicated storage that stores indexed data received from **Downloaders** via multicast.
 
-- **RMI Gateway** – Serves **RMI Client** requests by fetching data from **Index Storage Barrels** via Java RMI.
+- **RMI Gateway** – Serves **RMI Clients** requests by fetching data from **Index Storage Barrels** via Java RMI.
 
-- **RMI Client** – Queries the **RMI Gateway** to serve the Googol functionalities. Maybe interacted directly with or via the **Web Server**.
+- **RMI Client** – Queries the **RMI Gateway** to serve the Googol functionalities.
 
-- **Web Server** - MVC server that queries the **RMI Gateway** via RMI to serve the Googol functionalities.
+- **Web Server** - A **RMI Client** MVC server that queries the **RMI Gateway** via RMI to serve the Googol functionalities.
 
 - **REST API** - Hacker News API, queried by the **Web Server** to search for key words and obtain the results URLs to be indexed.
 
@@ -61,25 +61,26 @@ The conceptual architecture is presented and detailed below.
 ### Downloader
 - 3 blocking queues: received messages, outgoing messages, and missing acknowledgments.
 - 5 threads:
-    - The main thread crawls the URL popped from **URL Queue** and temporarily saves it the data locally in a HashMap (until acknowledged), the data is associated with a global ID counter fetched from the **RMI Gateway**. The data is inserted in the outgoing messages queue.
+    - The main thread crawls the URL popped from **URL Queue** and temporarily saves the data locally in a HashMap, until acknowledged. The data is associated with a global ID counter fetched from the **RMI Gateway** and inserted in the outgoing messages queue.
     - A thread to send messages of the outgoing messages queue to **Index Storage Barrels** via multicast. After sending a message it adds its ID to the missing acknowledgments queue together with a timestamp.
     - A thread that listens for received messages from **Index Storage Barrels** and inserts them in the received messages queue.
     - A thread that processes the acks from the received messages queue and removes the matching message with the id from the messages stored locally if not acknowledged already.
-    - A thread that pops the contents of the missing acknowledgments queue and checks whether the ack was already received or not (if the message with the ID is still stored locally). If the message was not yet acknowledged and the time window for an acknowledgment is expired the message is inserted in the outgoing messages queue. If the message was not yet acknowledged but the timer is not yet expired then the thread will wait until the time window expires and recheck.
-
-### RMI Gateway
-
+    - A thread that pops the contents of the missing acknowledgments queue and checks whether the ack was already received or not (if the message with the ID is still stored locally). If the message was not yet acknowledged and the time window for an acknowledgment is expired the message is inserted in the outgoing messages queue. If the message was not yet acknowledged but the timer is not yet expired then the thread will wait until the time window expires and recheck. 
 
 ### Index Storage Barrel
 - 4 blocking queues: received messages, outgoing messages, data to be processed, and missing messages.
 - 5 threads:
     - The main thread listens to new messages and inserts them in the received messages queue, also on boot the messages are loaded from storage and a discovery is request is sent via multicast to **Index Storage Barrels**.
     - A thread to send messages popped from the outgoing messages queue, which could be acks to **Downloaders**, message recovery requests to others **Index Storage Barrels** or even messages containing data as response to recovery/discovery requests from others **Index Storage Barrels**. 
-    - A thread that pops the messages from the received messages queue and processes it according to its type:
-        - If the message is from a downloader and unless it is already been saved, it is saved in memory and inserted in the data to be processed queue to be indexed in the barrel, an acknowledgment message to the **Downloaders** is also inserted in the outgoing messages queue. The message ID is also checked and compared against the number of contiguous messages received (i.e. latest message ID where the messages before form a complete sequence without holes), if a discrepancy is detected, recovery messages with the ID of the missing messages are inserted in the missing messages queue.
+    - A thread that pops the messages from the received messages queue and processes them according to their type:
+        - If the message is from a downloader and unless it is already been saved, it is saved in memory and inserted in the data to be processed queue, to be indexed in the barrel. An acknowledgment message to the **Downloaders** is also inserted in the outgoing messages queue. The message ID is also checked and compared against the number of contiguous messages received (i.e. latest message ID where the messages before form a complete sequence without holes), if a discrepancy is detected, recovery messages with the ID of the missing messages are inserted in the missing messages queue.
+        - If the message is of the recovery type, the missing message with the matching ID is sent, unless also missing in the current barrel.
         - If the message is of the discovery type, the message with the highest ID received is inserted in the outgoing messages queue.
     - A thread that pops the messages from the "data to be processed" indexes and stores the data.
     - A thread that pops the contents of the missing messages queue and checks whether the message with the ID was already received or not. If the message was not yet received and the time window has expired, then the message is inserted in the outgoing messages queue. If the message was not yet received but the timer has not yet expired then the thread will wait until the time window expires and recheck.
+
+### RMI Gateway
+- Holds the **URL Queue** (not replicated) and provides methods for new id retrieval and for inserting and removing urls from the queue atomically.
 
 ## Repository Structure
 
